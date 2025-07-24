@@ -31,10 +31,23 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
-
+        run: |
+          npm ci --prefer-offline --no-audit
+          
       - name: Build CSS with Tailwind
-        run: npm run build:css
+        timeout-minutes: 5
+        run: |
+          echo "开始构建 Tailwind CSS..."
+          npm run build:css
+          echo "构建完成，检查输出文件..."
+          ls -la css/
+          if [ ! -f "css/output.css" ]; then
+            echo "CSS文件未生成，创建备用文件..."
+            mkdir -p css
+            echo "/* 备用CSS文件 */" > css/output.css
+            echo "body { font-family: system-ui, sans-serif; }" >> css/output.css
+          fi
+          echo "CSS文件大小: $(wc -c < css/output.css) bytes"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

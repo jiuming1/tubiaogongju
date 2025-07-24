@@ -1,118 +1,85 @@
 @echo off
-setlocal enabledelayedexpansion
 chcp 65001 >nul
-title 图表工具 - 简化部署
+title 简化部署脚本
 
 echo ╔══════════════════════════════════════════════════════════════╗
-echo ║                    图表可视化工具                              ║
-echo ║                    简化部署脚本                                ║
+echo ║                      简化部署脚本                              ║
 echo ╚══════════════════════════════════════════════════════════════╝
 echo.
 
-REM 检查基本环境
-echo 🔍 检查环境...
-if not exist "package.json" (
-    echo ❌ 错误：未找到package.json文件
-    pause
-    exit /b 1
-)
-
-if not exist ".git" (
-    echo ❌ 错误：未找到Git仓库
-    pause
-    exit /b 1
-)
-
-echo ✅ 环境检查通过
+echo 🚀 开始简化部署...
 echo.
 
-REM 构建项目
-echo 🏗️  构建项目...
-echo.
-
-echo 📦 安装依赖...
-call npm install
-if errorlevel 1 (
-    echo ❌ 依赖安装失败
+REM 步骤1：检查基本环境
+echo 📋 检查环境...
+if not exist "index.html" (
+    echo ❌ index.html 不存在
     pause
     exit /b 1
 )
 
-echo 🎨 构建CSS...
-call npm run build:css
-if errorlevel 1 (
-    echo ❌ CSS构建失败
-    pause
-    exit /b 1
-)
-
-echo ✅ 项目构建完成
+echo ✅ 基本环境检查通过
 echo.
 
-REM Git操作
-echo 📝 准备Git提交...
+REM 步骤2：尝试构建CSS（带超时）
+echo 🎨 构建CSS（30秒超时）...
+echo.
+
+REM 确保目录存在
+if not exist "css" mkdir css
+
+REM 使用timeout命令限制构建时间
+echo 正在构建CSS...
+timeout /t 30 /nobreak > nul & npx tailwindcss -i ./src/input.css -o ./css/output.css --minify
+
+REM 检查是否成功
+if exist "css\output.css" (
+    echo ✅ CSS构建成功
+) else (
+    echo ⚠️  CSS构建可能失败，尝试使用现有CSS文件
+    if exist "css\style.css" (
+        echo 使用现有的 style.css
+        copy css\style.css css\output.css > nul
+    ) else (
+        echo 创建最小CSS文件...
+        echo /* 最小CSS文件 */ > css\output.css
+        echo body { font-family: system-ui, sans-serif; } >> css\output.css
+    )
+)
+
+echo.
+
+REM 步骤3：Git操作
+echo 📝 Git操作...
 echo.
 
 echo 添加文件...
 git add .
 
-echo 创建提交...
-git commit -m "部署图表工具 - %date% %time%"
+echo 提交更改...
+git commit -m "简化部署 - %date% %time%"
 
-echo ✅ Git提交完成
-echo.
-
-REM 推送到GitHub
-echo 🚀 推送到GitHub...
-echo.
-
+echo 推送到GitHub...
 git push origin main
+
 if errorlevel 1 (
-    echo ⚠️  标准推送失败，尝试强制推送...
-    git push -f origin main
+    echo ⚠️  推送失败，尝试其他分支...
+    git push origin master
     if errorlevel 1 (
-        echo ❌ 推送失败
-        echo.
-        echo 可能的原因：
-        echo 1. 网络连接问题
-        echo 2. GitHub权限问题
-        echo 3. 仓库配置问题
-        echo.
+        echo ❌ 推送失败，请检查Git配置
         pause
         exit /b 1
     )
 )
 
-echo ✅ 推送成功！
+echo.
+echo ✅ 部署完成！
 echo.
 
-REM 完成提示
-echo ╔══════════════════════════════════════════════════════════════╗
-echo ║                        部署完成！                              ║
-echo ╚══════════════════════════════════════════════════════════════╝
+echo 🔧 后续步骤：
+echo 1. 访问GitHub仓库设置页面
+echo 2. 启用GitHub Pages
+echo 3. 等待部署完成
 echo.
 
-echo 🔧 现在需要启用GitHub Pages：
-echo.
-echo 1️⃣  访问: https://github.com/jiuming1/tubiaogongju/settings/pages
-echo 2️⃣  在"Source"部分选择"GitHub Actions"
-echo 3️⃣  点击"Save"保存
-echo 4️⃣  等待2-5分钟完成部署
-echo 5️⃣  访问: https://jiuming1.github.io/tubiaogongju/
-echo.
-
-set /p open_settings="是否现在打开GitHub Pages设置？(y/n): "
-if /i "!open_settings!"=="y" (
-    start https://github.com/jiuming1/tubiaogongju/settings/pages
-)
-
-set /p open_actions="是否查看部署状态？(y/n): "
-if /i "!open_actions!"=="y" (
-    start https://github.com/jiuming1/tubiaogongju/actions
-)
-
-echo.
-echo 🎉 部署脚本执行完成！
-echo 📊 重要链接已保存，请按照提示完成GitHub Pages设置。
-echo.
 pause

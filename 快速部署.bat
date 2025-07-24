@@ -33,24 +33,39 @@ if not exist "tailwind.config.js" (
 echo ✅ 环境检查通过
 echo.
 
-REM 步骤2：直接运行Tailwind命令
+REM 步骤2：构建CSS
 echo 🎨 构建CSS...
 echo.
 
-REM 使用npx直接运行，避免npm脚本问题
-echo 正在运行: npx tailwindcss -i ./src/input.css -o ./css/output.css --minify
-npx tailwindcss -i ./src/input.css -o ./css/output.css --minify
+REM 确保css目录存在
+if not exist "css" (
+    echo 创建css目录...
+    mkdir css
+)
 
+REM 清理旧的输出文件
+if exist "css\output.css" (
+    echo 清理旧的CSS文件...
+    del "css\output.css"
+)
+
+REM 使用npx运行Tailwind，添加详细输出
+echo 正在运行: npx tailwindcss -i ./src/input.css -o ./css/output.css --minify --verbose
+npx tailwindcss -i ./src/input.css -o ./css/output.css --minify --verbose
+
+REM 检查构建结果
 if not exist "css\output.css" (
     echo ❌ CSS构建失败
     echo.
-    echo 尝试创建css目录...
-    mkdir css 2>nul
-    echo 重新构建...
-    npx tailwindcss -i ./src/input.css -o ./css/output.css --minify
+    echo 尝试不使用minify选项...
+    npx tailwindcss -i ./src/input.css -o ./css/output.css --verbose
     
     if not exist "css\output.css" (
         echo ❌ CSS构建仍然失败
+        echo 请检查以下文件是否存在：
+        echo - src/input.css
+        echo - tailwind.config.js
+        echo.
         pause
         exit /b 1
     )
