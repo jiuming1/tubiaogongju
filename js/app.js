@@ -395,28 +395,8 @@ class DataVisualizationApp {
     
     // 填充列选择器
     populateColumnSelectors() {
-        // 清空选择器
-        this.xAxisSelect.innerHTML = '<option value="">请选择...</option>';
-        this.yAxisSelect.innerHTML = '<option value="">请选择...</option>';
-        
-        // 检测列数据类型
-        const columnTypes = DataParser.detectColumnTypes(this.data);
-        
-        // 添加列选项
-        this.data[0].forEach((column, index) => {
-            const type = columnTypes[index];
-            const typeLabel = type === 'number' ? ' (数值)' : type === 'date' ? ' (日期)' : ' (文本)';
-            
-            const xOption = document.createElement('option');
-            xOption.value = index;
-            xOption.textContent = column + typeLabel;
-            this.xAxisSelect.appendChild(xOption);
-            
-            const yOption = document.createElement('option');
-            yOption.value = index;
-            yOption.textContent = column + typeLabel;
-            this.yAxisSelect.appendChild(yOption);
-        });
+        // 根据当前选择的图表类型更新列选择器
+        this.updateColumnSelectors();
     }
     
     // 处理文件移除
@@ -451,8 +431,470 @@ class DataVisualizationApp {
                 // 添加选中状态
                 option.classList.add('bg-primary/10', 'text-primary');
                 this.selectedChartType = option.dataset.type;
+                
+                // 根据图表类型更新列选择器
+                this.updateColumnSelectors();
             });
         });
+    }
+    
+    // 根据图表类型更新列选择器
+    updateColumnSelectors() {
+        if (!this.data) return;
+        
+        const chartType = this.selectedChartType;
+        
+        // 根据图表类型生成相应的列选择器
+        this.generateOptimizedColumnSelectors(chartType);
+    }
+    
+    // 生成优化的列选择器
+    generateOptimizedColumnSelectors(chartType) {
+        const columnSelectorsContainer = document.getElementById('column-selectors');
+        
+        // 检测列数据类型
+        const columnTypes = AdvancedDataProcessor.detectAdvancedColumnTypes(this.data);
+        
+        // 获取图表类型配置
+        const config = ChartTypeManager.getChartTypeConfig(chartType);
+        
+        let html = '';
+        
+        // 根据图表类型生成不同的列选择器
+        switch (chartType) {
+            case 'scatter':
+                html = this.generateScatterColumnSelectors(columnTypes);
+                break;
+            case 'bubble':
+                html = this.generateBubbleColumnSelectors(columnTypes);
+                break;
+            case 'area':
+                html = this.generateAreaColumnSelectors(columnTypes);
+                break;
+            case 'boxplot':
+                html = this.generateBoxPlotColumnSelectors(columnTypes);
+                break;
+            case 'heatmap':
+                html = this.generateHeatmapColumnSelectors(columnTypes);
+                break;
+            case 'waterfall':
+                html = this.generateWaterfallColumnSelectors(columnTypes);
+                break;
+            case 'gauge':
+                html = this.generateGaugeColumnSelectors(columnTypes);
+                break;
+            case 'polarArea':
+                html = this.generatePolarAreaColumnSelectors(columnTypes);
+                break;
+            default:
+                // 基础图表类型使用默认的X/Y轴选择器
+                html = this.generateBasicColumnSelectors(columnTypes, chartType);
+        }
+        
+        columnSelectorsContainer.innerHTML = html;
+        
+        // 使用setTimeout确保DOM元素已经渲染
+        setTimeout(() => {
+            this.updateElementReferences();
+        }, 0);
+    }
+    
+    // 更新DOM元素引用
+    updateElementReferences() {
+        this.xAxisSelect = document.getElementById('x-axis-select');
+        this.yAxisSelect = document.getElementById('y-axis-select');
+        this.sizeSelect = document.getElementById('size-select');
+        this.valueSelect = document.getElementById('value-select');
+        this.groupSelect = document.getElementById('group-select');
+        this.categorySelect = document.getElementById('category-select');
+        this.angleSelect = document.getElementById('angle-select');
+        this.radiusSelect = document.getElementById('radius-select');
+    }
+    
+    // 生成基础图表类型的列选择器
+    generateBasicColumnSelectors(columnTypes, chartType) {
+        const chartTypeNames = {
+            'bar': '柱状图',
+            'line': '折线图',
+            'pie': '饼图',
+            'doughnut': '环形图',
+            'radar': '雷达图'
+        };
+        
+        const chartName = chartTypeNames[chartType] || '图表';
+        
+        return `
+            <div class="space-y-4">
+                <div class="bg-blue-50 p-3 rounded-lg">
+                    <p class="text-sm text-blue-700 mb-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        ${chartName}需要选择类别和数值数据
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-tag mr-1 text-gray-500"></i>
+                        类别/标签 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="x-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择类别列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['text', 'date'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">选择用作图表标签的列</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-chart-line mr-1 text-gray-500"></i>
+                        数值 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="y-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择数值列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">选择用作图表数值的列</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 生成散点图列选择器
+    generateScatterColumnSelectors(columnTypes) {
+        return `
+            <div class="space-y-4">
+                <div class="bg-purple-50 p-3 rounded-lg">
+                    <p class="text-sm text-purple-700 mb-2">
+                        <i class="fas fa-braille mr-1"></i>
+                        散点图用于展示两个数值变量之间的关系
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-arrows-alt-h mr-1 text-gray-500"></i>
+                        X轴数值 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="x-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择X轴数值列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">选择水平轴的数值数据</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-arrows-alt-v mr-1 text-gray-500"></i>
+                        Y轴数值 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="y-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择Y轴数值列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">选择垂直轴的数值数据</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 生成气泡图列选择器
+    generateBubbleColumnSelectors(columnTypes) {
+        return `
+            <div class="space-y-4">
+                <div class="bg-green-50 p-3 rounded-lg">
+                    <p class="text-sm text-green-700 mb-2">
+                        <i class="fas fa-circle-dot mr-1"></i>
+                        气泡图可以同时展示三个维度的数据关系
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-arrows-alt-h mr-1 text-gray-500"></i>
+                        X轴数值 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="x-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择X轴数值列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-arrows-alt-v mr-1 text-gray-500"></i>
+                        Y轴数值 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="y-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择Y轴数值列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-expand-arrows-alt mr-1 text-gray-500"></i>
+                        气泡大小 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="size-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择气泡大小列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">数值越大，气泡越大</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 生成面积图列选择器
+    generateAreaColumnSelectors(columnTypes) {
+        return `
+            <div class="space-y-4">
+                <div class="bg-indigo-50 p-3 rounded-lg">
+                    <p class="text-sm text-indigo-700 mb-2">
+                        <i class="fas fa-chart-area mr-1"></i>
+                        面积图适合展示数据随时间的累积变化趋势
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-calendar mr-1 text-gray-500"></i>
+                        时间/类别 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="x-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择时间或类别列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['text', 'date'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">通常选择时间序列数据</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-chart-line mr-1 text-gray-500"></i>
+                        累积数值 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="y-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择数值列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">选择要累积显示的数值数据</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 生成箱线图列选择器
+    generateBoxPlotColumnSelectors(columnTypes) {
+        return `
+            <div class="space-y-4">
+                <div class="bg-yellow-50 p-3 rounded-lg">
+                    <p class="text-sm text-yellow-700 mb-2">
+                        <i class="fas fa-square-full mr-1"></i>
+                        箱线图用于展示数据的分布特征和异常值
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-chart-line mr-1 text-gray-500"></i>
+                        数值数据 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="y-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择数值列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">选择要分析分布的数值数据</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-layer-group mr-1 text-gray-500"></i>
+                        分组 <span class="text-gray-400">(可选)</span>
+                    </label>
+                    <select id="group-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">不分组</option>
+                        ${this.generateColumnOptions(columnTypes, ['text'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">可选择按类别分组显示</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 生成热力图列选择器
+    generateHeatmapColumnSelectors(columnTypes) {
+        return `
+            <div class="space-y-4">
+                <div class="bg-red-50 p-3 rounded-lg">
+                    <p class="text-sm text-red-700 mb-2">
+                        <i class="fas fa-th-large mr-1"></i>
+                        热力图用于展示二维数据的密度分布
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-arrows-alt-h mr-1 text-gray-500"></i>
+                        X轴坐标 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="x-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择X轴坐标列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number', 'text'])}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-arrows-alt-v mr-1 text-gray-500"></i>
+                        Y轴坐标 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="y-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择Y轴坐标列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number', 'text'])}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-thermometer-half mr-1 text-gray-500"></i>
+                        强度值 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="value-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择强度值列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">数值决定颜色深浅</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 生成瀑布图列选择器
+    generateWaterfallColumnSelectors(columnTypes) {
+        return `
+            <div class="space-y-4">
+                <div class="bg-teal-50 p-3 rounded-lg">
+                    <p class="text-sm text-teal-700 mb-2">
+                        <i class="fas fa-chart-column mr-1"></i>
+                        瀑布图用于展示数值的累积变化过程
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-tag mr-1 text-gray-500"></i>
+                        项目/类别 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="x-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择项目类别列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['text'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">选择变化项目的名称</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-plus-minus mr-1 text-gray-500"></i>
+                        变化值 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="y-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择变化值列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">正值表示增加，负值表示减少</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 生成仪表盘图列选择器
+    generateGaugeColumnSelectors(columnTypes) {
+        return `
+            <div class="space-y-4">
+                <div class="bg-orange-50 p-3 rounded-lg">
+                    <p class="text-sm text-orange-700 mb-2">
+                        <i class="fas fa-tachometer-alt mr-1"></i>
+                        仪表盘图用于直观展示KPI指标的完成情况
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-chart-line mr-1 text-gray-500"></i>
+                        指标数值 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="y-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择指标数值列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">选择要在仪表盘中显示的数值</p>
+                </div>
+                
+                <div class="bg-gray-50 p-3 rounded-lg">
+                    <p class="text-xs text-gray-600">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        如果有多个数值，将显示平均值
+                    </p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 生成极坐标图列选择器
+    generatePolarAreaColumnSelectors(columnTypes) {
+        return `
+            <div class="space-y-4">
+                <div class="bg-pink-50 p-3 rounded-lg">
+                    <p class="text-sm text-pink-700 mb-2">
+                        <i class="fas fa-compass mr-1"></i>
+                        极坐标图用于展示周期性或方向性数据
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-sync-alt mr-1 text-gray-500"></i>
+                        角度数据 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="x-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择角度数据列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">角度值（0-360度）</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-expand-arrows-alt mr-1 text-gray-500"></i>
+                        半径数据 <span class="text-red-500">*</span>
+                    </label>
+                    <select id="y-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
+                        <option value="">请选择半径数据列...</option>
+                        ${this.generateColumnOptions(columnTypes, ['number'])}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">距离中心的距离值</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 生成列选项HTML
+    generateColumnOptions(columnTypes, allowedTypes) {
+        let options = '';
+        
+        this.data[0].forEach((column, index) => {
+            const type = columnTypes[index];
+            const typeLabel = type ? ` (${ChartTypeManager.getTypeDisplayName(type.type)})` : '';
+            
+            // 检查列类型是否符合要求
+            const isCompatible = !type || allowedTypes.includes(type.type) || type.confidence < 0.5;
+            const className = isCompatible ? '' : 'text-gray-400';
+            const disabled = isCompatible ? '' : 'disabled';
+            
+            options += `<option value="${index}" class="${className}" ${disabled}>${column}${typeLabel}</option>`;
+        });
+        
+        return options;
     }
     
     // 设置主题选择
@@ -494,17 +936,21 @@ class DataVisualizationApp {
             return;
         }
         
-        const xColumn = this.xAxisSelect.value;
-        const yColumn = this.yAxisSelect.value;
+        // 获取选中的列配置
+        const selectedColumns = this.getSelectedColumns();
         
-        if (!xColumn || !yColumn) {
-            NotificationSystem.show('错误', '请选择X轴和Y轴数据列', 'error');
+        // 验证选中的列
+        const validation = ChartDataValidator.validateData(this.data, this.selectedChartType, selectedColumns);
+        if (!validation.valid) {
+            NotificationSystem.show('错误', validation.errors.join(', '), 'error');
             return;
         }
         
-        if (xColumn === yColumn) {
-            NotificationSystem.show('错误', 'X轴和Y轴不能选择相同的列', 'error');
-            return;
+        // 显示警告（如果有）
+        if (validation.warnings && validation.warnings.length > 0) {
+            validation.warnings.forEach(warning => {
+                NotificationSystem.show('警告', warning, 'warning');
+            });
         }
         
         // 显示加载状态
@@ -514,7 +960,7 @@ class DataVisualizationApp {
             // 使用setTimeout来让UI有时间更新
             setTimeout(() => {
                 try {
-                    this.createChart(this.selectedChartType, xColumn, yColumn);
+                    this.createChart(this.selectedChartType, selectedColumns);
                     NotificationSystem.show('成功', '图表生成成功', 'success');
                 } catch (error) {
                     console.error('Chart generation error:', error);
@@ -528,6 +974,202 @@ class DataVisualizationApp {
             console.error('Chart generation error:', error);
             NotificationSystem.show('错误', '生成图表时出错: ' + error.message, 'error');
         }
+    }
+    
+    // 获取选中的列配置
+    getSelectedColumns() {
+        const chartType = this.selectedChartType;
+        let selectedColumns = {};
+        
+        // 根据图表类型获取相应的列选择
+        switch (chartType) {
+            case 'scatter':
+                selectedColumns = this.getBasicColumns();
+                break;
+            case 'bubble':
+                selectedColumns = this.getBubbleColumns();
+                break;
+            case 'area':
+                selectedColumns = this.getBasicColumns();
+                break;
+            case 'boxplot':
+                selectedColumns = this.getBoxPlotColumns();
+                break;
+            case 'heatmap':
+                selectedColumns = this.getHeatmapColumns();
+                break;
+            case 'waterfall':
+                selectedColumns = this.getBasicColumns();
+                break;
+            case 'gauge':
+                selectedColumns = this.getGaugeColumns();
+                break;
+            case 'polarArea':
+                selectedColumns = this.getBasicColumns();
+                break;
+            default:
+                // 基础图表类型使用X/Y轴选择器
+                selectedColumns = this.getBasicColumns();
+        }
+        
+        return selectedColumns;
+    }
+    
+    // 获取基础图表的列选择
+    getBasicColumns() {
+        // 实时获取元素，而不依赖缓存的引用
+        const xAxisSelect = document.getElementById('x-axis-select');
+        const yAxisSelect = document.getElementById('y-axis-select');
+        
+        const xColumn = xAxisSelect ? xAxisSelect.value : '';
+        const yColumn = yAxisSelect ? yAxisSelect.value : '';
+        
+        console.log(`getBasicColumns [${this.selectedChartType}] - X轴选择器:`, xAxisSelect, '值:', xColumn, '类型:', typeof xColumn);
+        console.log(`getBasicColumns [${this.selectedChartType}] - Y轴选择器:`, yAxisSelect, '值:', yColumn, '类型:', typeof yColumn);
+        
+        // 修复验证逻辑：检查是否为空字符串，而不是falsy值
+        if (xColumn === '' || yColumn === '') {
+            console.error(`getBasicColumns [${this.selectedChartType}] - 缺少必要的列选择, X轴: "${xColumn}", Y轴: "${yColumn}"`);
+            throw new Error('请选择X轴和Y轴数据列');
+        }
+        
+        return {
+            xAxis: parseInt(xColumn),
+            yAxis: parseInt(yColumn)
+        };
+    }
+    
+    // 获取气泡图的列选择
+    getBubbleColumns() {
+        const xAxisSelect = document.getElementById('x-axis-select');
+        const yAxisSelect = document.getElementById('y-axis-select');
+        const sizeSelect = document.getElementById('size-select');
+        
+        const xColumn = xAxisSelect ? xAxisSelect.value : '';
+        const yColumn = yAxisSelect ? yAxisSelect.value : '';
+        const sizeColumn = sizeSelect ? sizeSelect.value : '';
+        
+        if (xColumn === '' || yColumn === '' || sizeColumn === '') {
+            throw new Error('气泡图需要选择X轴、Y轴和气泡大小数据列');
+        }
+        
+        return {
+            xAxis: parseInt(xColumn),
+            yAxis: parseInt(yColumn),
+            size: parseInt(sizeColumn)
+        };
+    }
+    
+    // 获取箱线图的列选择
+    getBoxPlotColumns() {
+        const yAxisSelect = document.getElementById('y-axis-select');
+        const groupSelect = document.getElementById('group-select');
+        
+        const yColumn = yAxisSelect ? yAxisSelect.value : '';
+        const groupColumn = groupSelect ? groupSelect.value : '';
+        
+        if (yColumn === '') {
+            throw new Error('箱线图需要选择数值数据列');
+        }
+        
+        const columns = {
+            yAxis: parseInt(yColumn)
+        };
+        
+        if (groupColumn) {
+            columns.group = parseInt(groupColumn);
+        }
+        
+        return columns;
+    }
+    
+    // 获取热力图的列选择
+    getHeatmapColumns() {
+        const xAxisSelect = document.getElementById('x-axis-select');
+        const yAxisSelect = document.getElementById('y-axis-select');
+        const valueSelect = document.getElementById('value-select');
+        
+        const xColumn = xAxisSelect ? xAxisSelect.value : '';
+        const yColumn = yAxisSelect ? yAxisSelect.value : '';
+        const valueColumn = valueSelect ? valueSelect.value : '';
+        
+        console.log('getHeatmapColumns - X轴选择器:', xAxisSelect, '值:', xColumn);
+        console.log('getHeatmapColumns - Y轴选择器:', yAxisSelect, '值:', yColumn);
+        console.log('getHeatmapColumns - 强度值选择器:', valueSelect, '值:', valueColumn);
+        
+        if (xColumn === '' || yColumn === '' || valueColumn === '') {
+            console.error('getHeatmapColumns - 缺少必要的列选择');
+            throw new Error('热力图需要选择X轴、Y轴和强度值数据列');
+        }
+        
+        return {
+            xAxis: parseInt(xColumn),
+            yAxis: parseInt(yColumn),
+            value: parseInt(valueColumn)
+        };
+    }
+    
+    // 获取瀑布图的列选择
+    getWaterfallColumns() {
+        const xAxisSelect = document.getElementById('x-axis-select');
+        const yAxisSelect = document.getElementById('y-axis-select');
+        
+        const xColumn = xAxisSelect ? xAxisSelect.value : '';
+        const yColumn = yAxisSelect ? yAxisSelect.value : '';
+        
+        console.log('getWaterfallColumns - X轴选择器:', xAxisSelect, '值:', xColumn);
+        console.log('getWaterfallColumns - Y轴选择器:', yAxisSelect, '值:', yColumn);
+        
+        if (xColumn === '' || yColumn === '') {
+            console.error('getWaterfallColumns - 缺少必要的列选择');
+            throw new Error('瀑布图需要选择项目类别和变化值数据列');
+        }
+        
+        return {
+            xAxis: parseInt(xColumn),
+            yAxis: parseInt(yColumn),
+            // ChartDataValidator期望的字段名
+            category: parseInt(xColumn),
+            value: parseInt(yColumn)
+        };
+    }
+    
+    // 获取仪表盘图的列选择
+    getGaugeColumns() {
+        const yAxisSelect = document.getElementById('y-axis-select');
+        
+        const yColumn = yAxisSelect ? yAxisSelect.value : '';
+        
+        console.log('getGaugeColumns - Y轴选择器:', yAxisSelect, '值:', yColumn);
+        
+        if (yColumn === '') {
+            console.error('getGaugeColumns - 缺少必要的列选择');
+            throw new Error('仪表盘图需要选择指标数值数据列');
+        }
+        
+        return {
+            yAxis: parseInt(yColumn)
+        };
+    }
+    
+    // 获取极坐标图的列选择
+    getPolarAreaColumns() {
+        const xAxisSelect = document.getElementById('x-axis-select');
+        const yAxisSelect = document.getElementById('y-axis-select');
+        
+        const xColumn = xAxisSelect ? xAxisSelect.value : '';
+        const yColumn = yAxisSelect ? yAxisSelect.value : '';
+        
+        if (xColumn === '' || yColumn === '') {
+            throw new Error('极坐标图需要选择角度和半径数据列');
+        }
+        
+        return {
+            xAxis: parseInt(xColumn),
+            yAxis: parseInt(yColumn),
+            angle: parseInt(xColumn),
+            radius: parseInt(yColumn)
+        };
     }
     
     // 设置生成按钮加载状态
@@ -548,48 +1190,177 @@ class DataVisualizationApp {
     }
     
     // 创建图表
-    createChart(type, xColumn, yColumn) {
+    createChart(type, selectedColumns) {
         // 销毁现有图表
         this.destroyExistingChart();
         
-        // 准备数据
-        const chartData = ChartGenerator.prepareData(this.data, xColumn, yColumn);
+        // 确保canvas完全清理和重置
+        this.resetCanvas();
         
         // 获取颜色主题
         const colors = ChartGenerator.getThemeColors(this.selectedTheme);
         
         // 创建图表配置
-        const config = ChartGenerator.createConfig(type, chartData, colors, {
-            title: this.chartTitle.value,
-            showLegend: this.showLegend.checked,
-            showGrid: this.showGrid.checked
-        });
+        let config;
+        
+        try {
+            // 检查是否为新的图表类型
+            const newChartTypes = ['scatter', 'bubble', 'area', 'polarArea', 'boxplot', 'heatmap', 'waterfall', 'gauge'];
+            
+            console.log('创建图表:', { type, selectedColumns, dataLength: this.data.length });
+            
+            if (newChartTypes.includes(type)) {
+                // 使用新的扩展方法
+                console.log('使用扩展方法创建新图表类型:', type);
+                const chartData = ChartGenerator.prepareMultiColumnData(this.data, selectedColumns, type);
+                console.log('准备的图表数据:', chartData);
+                
+                config = ChartGenerator.createExtendedConfig(type, chartData, colors, {
+                    title: this.chartTitle ? this.chartTitle.value : '',
+                    showLegend: this.showLegend ? this.showLegend.checked : true,
+                    showGrid: this.showGrid ? this.showGrid.checked : true
+                });
+                console.log('生成的图表配置:', config);
+            } else {
+                // 使用原有的方法处理基础图表类型
+                console.log('使用基础方法创建传统图表类型:', type);
+                const chartData = ChartGenerator.prepareData(this.data, selectedColumns.xAxis, selectedColumns.yAxis);
+                config = ChartGenerator.createConfig(type, chartData, colors, {
+                    title: this.chartTitle ? this.chartTitle.value : '',
+                    showLegend: this.showLegend ? this.showLegend.checked : true,
+                    showGrid: this.showGrid ? this.showGrid.checked : true
+                });
+            }
+        } catch (error) {
+            console.error('图表配置创建失败:', error);
+            NotificationSystem.show('错误', '创建图表配置时出错: ' + error.message, 'error');
+            return;
+        }
         
         // 创建图表
         try {
-            this.chart = new Chart(this.chartCanvas, config);
+            this.chart = ChartGenerator.safeCreateChart(this.chartCanvas, config);
             
-            // 显示图表容器
-            this.chartContainer.classList.remove('hidden');
-            this.noChartMessage.classList.add('hidden');
+            if (this.chart) {
+                // 显示图表容器
+                this.chartContainer.classList.remove('hidden');
+                this.noChartMessage.classList.add('hidden');
+                console.log('图表创建成功');
+            } else {
+                throw new Error('图表创建失败');
+            }
         } catch (error) {
-            // 如果创建失败，再次尝试销毁并重新创建
-            console.warn('图表创建失败，尝试重新创建:', error);
-            this.destroyExistingChart();
+            // 如果创建失败，强制清理并重新创建
+            console.warn('图表创建失败，尝试强制清理后重新创建:', error);
+            
+            // 强制清理所有可能的Chart实例
+            this.forceCleanupChart();
             
             // 短暂延迟后重试
             setTimeout(() => {
-                this.chart = new Chart(this.chartCanvas, config);
-                this.chartContainer.classList.remove('hidden');
-                this.noChartMessage.classList.add('hidden');
+                try {
+                    console.log('尝试重新创建图表...');
+                    this.chart = ChartGenerator.safeCreateChart(this.chartCanvas, config);
+                    
+                    if (this.chart) {
+                        this.chartContainer.classList.remove('hidden');
+                        this.noChartMessage.classList.add('hidden');
+                        console.log('图表重试创建成功');
+                    } else {
+                        throw new Error('重试创建失败');
+                    }
+                } catch (retryError) {
+                    console.error('图表重试创建也失败:', retryError);
+                    NotificationSystem.show('错误', '图表创建失败，请刷新页面后重试', 'error');
+                }
             }, 100);
         }
     }
     
     // 销毁现有图表
     destroyExistingChart() {
-        ChartGenerator.safeDestroyChart(this.chart, this.chartCanvas);
-        this.chart = null;
+        if (this.chart) {
+            try {
+                this.chart.destroy();
+                console.log('现有图表已销毁');
+            } catch (error) {
+                console.warn('销毁图表时出现错误:', error);
+            }
+            this.chart = null;
+        }
+        
+        // 额外的清理：检查canvas上是否还有Chart.js实例
+        if (this.chartCanvas) {
+            try {
+                // 获取canvas上可能存在的Chart实例
+                const existingChart = Chart.getChart(this.chartCanvas);
+                if (existingChart) {
+                    existingChart.destroy();
+                    console.log('清理了canvas上的残留图表实例');
+                }
+            } catch (error) {
+                console.warn('清理canvas时出现错误:', error);
+            }
+        }
+    }
+    
+    // 重置Canvas元素
+    resetCanvas() {
+        if (this.chartCanvas) {
+            try {
+                // 清除canvas内容
+                const ctx = this.chartCanvas.getContext('2d');
+                if (ctx) {
+                    ctx.clearRect(0, 0, this.chartCanvas.width, this.chartCanvas.height);
+                }
+                
+                // 重置canvas属性
+                this.chartCanvas.width = this.chartCanvas.width; // 这会清除canvas
+                
+                console.log('Canvas已重置');
+            } catch (error) {
+                console.warn('重置Canvas时出现错误:', error);
+            }
+        }
+    }
+    
+    // 强制清理图表
+    forceCleanupChart() {
+        try {
+            // 1. 销毁当前图表实例
+            if (this.chart) {
+                this.chart.destroy();
+                this.chart = null;
+            }
+            
+            // 2. 清理canvas上的所有Chart实例
+            if (this.chartCanvas) {
+                // 获取所有可能的Chart实例
+                const existingChart = Chart.getChart(this.chartCanvas);
+                if (existingChart) {
+                    existingChart.destroy();
+                }
+                
+                // 从Chart.js的全局注册表中移除
+                const canvasId = this.chartCanvas.id;
+                if (canvasId && Chart.instances) {
+                    Object.keys(Chart.instances).forEach(id => {
+                        const instance = Chart.instances[id];
+                        if (instance && instance.canvas && instance.canvas.id === canvasId) {
+                            instance.destroy();
+                            delete Chart.instances[id];
+                        }
+                    });
+                }
+            }
+            
+            // 3. 重置canvas
+            this.resetCanvas();
+            
+            console.log('强制清理完成');
+        } catch (error) {
+            console.error('强制清理时出现错误:', error);
+        }
     }
     
     // 处理图表导出

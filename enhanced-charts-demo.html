@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>增强图表类型演示</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .chart-container {
+            height: 300px;
+        }
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">
+                <i class="fa-solid fa-chart-line text-blue-600 mr-3"></i>
+                增强图表类型演示
+            </h1>
+            <p class="text-gray-600 text-lg">展示数据可视化工具的8种新图表类型</p>
+        </header>
+
+        <div class="mb-8 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold mb-4">功能特性</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <i class="fa-solid fa-braille text-blue-600 text-2xl mb-2"></i>
+                    <h3 class="font-semibold">散点图</h3>
+                    <p class="text-sm text-gray-600">展示变量相关性</p>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <i class="fa-solid fa-circle-dot text-green-600 text-2xl mb-2"></i>
+                    <h3 class="font-semibold">气泡图</h3>
+                    <p class="text-sm text-gray-600">三维数据关系</p>
+                </div>
+                <div class="text-center p-4 bg-purple-50 rounded-lg">
+                    <i class="fa-solid fa-chart-area text-purple-600 text-2xl mb-2"></i>
+                    <h3 class="font-semibold">面积图</h3>
+                    <p class="text-sm text-gray-600">累积变化趋势</p>
+                </div>
+                <div class="text-center p-4 bg-red-50 rounded-lg">
+                    <i class="fa-solid fa-tachometer-alt text-red-600 text-2xl mb-2"></i>
+                    <h3 class="font-semibold">仪表盘图</h3>
+                    <p class="text-sm text-gray-600">KPI指标展示</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 散点图演示 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">散点图演示</h3>
+                    <button onclick="generateScatter()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
+                        <i class="fa-solid fa-refresh mr-2"></i>生成
+                    </button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="scatter-chart"></canvas>
+                </div>
+                <div id="scatter-info" class="mt-2 text-sm text-gray-600"></div>
+            </div>
+
+            <!-- 气泡图演示 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">气泡图演示</h3>
+                    <button onclick="generateBubble()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
+                        <i class="fa-solid fa-refresh mr-2"></i>生成
+                    </button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="bubble-chart"></canvas>
+                </div>
+                <div id="bubble-info" class="mt-2 text-sm text-gray-600"></div>
+            </div>
+
+            <!-- 面积图演示 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">面积图演示</h3>
+                    <button onclick="generateArea()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors">
+                        <i class="fa-solid fa-refresh mr-2"></i>生成
+                    </button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="area-chart"></canvas>
+                </div>
+                <div id="area-info" class="mt-2 text-sm text-gray-600"></div>
+            </div>
+
+            <!-- 仪表盘图演示 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">仪表盘图演示</h3>
+                    <button onclick="generateGauge()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors">
+                        <i class="fa-solid fa-refresh mr-2"></i>生成
+                    </button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="gauge-chart"></canvas>
+                </div>
+                <div id="gauge-info" class="mt-2 text-sm text-gray-600"></div>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold mb-4">性能统计</h2>
+            <div id="performance-stats" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-blue-600" id="total-charts">0</div>
+                    <div class="text-sm text-gray-600">生成的图表</div>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-green-600" id="avg-time">0ms</div>
+                    <div class="text-sm text-gray-600">平均生成时间</div>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-purple-600" id="success-rate">100%</div>
+                    <div class="text-sm text-gray-600">成功率</div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="text-center mt-8 text-gray-600">
+            <p>数据可视化工具 - 增强图表类型功能演示</p>
+            <p class="text-sm mt-2">支持8种新图表类型，提供强大的数据可视化能力</p>
+        </footer>
+    </div>
+
+    <!-- 引入JavaScript文件 -->
+    <script src="js/performance-monitor.js"></script>
+    <script src="js/advanced-data-processor.js"></script>
+    <script src="js/chart-data-validator.js"></script>
+    <script src="js/chart-type-manager.js"></script>
+    <script src="js/chart-generator.js"></script>
+    <script src="js/notification-system.js"></script>
+
+    <script>
+        let charts = {};
+        let stats = {
+            totalCharts: 0,
+            totalTime: 0,
+            successCount: 0
+        };
+
+        // 演示数据
+        const demoData = {
+            scatter: [
+                ['身高(cm)', '体重(kg)'],
+                [160, 55], [165, 60], [170, 65], [175, 70], [180, 75],
+                [162, 58], [168, 63], [172, 68], [177, 73], [182, 78],
+                [159, 52], [164, 59], [169, 64], [174, 69], [179, 74]
+            ],
+            bubble: [
+                ['销售额', '利润', '市场份额'],
+                [1000, 150, 15], [1500, 200, 20], [800, 100, 10],
+                [2000, 300, 25], [1200, 180, 18], [900, 120, 12],
+                [1800, 250, 22], [700, 80, 8], [2200, 350, 28]
+            ],
+            area: [
+                ['月份', '累计销售额'],
+                ['1月', 100], ['2月', 220], ['3月', 360], ['4月', 470],
+                ['5月', 630], ['6月', 810], ['7月', 1010], ['8月', 1200],
+                ['9月', 1350], ['10月', 1520], ['11月', 1680], ['12月', 1850]
+            ],
+            gauge: [
+                ['完成率'],
+                [78]
+            ]
+        };
+
+        // 生成散点图
+        function generateScatter() {
+            generateChart('scatter', 'scatter-chart', 'scatter-info', {
+                xAxis: 0, yAxis: 1
+            }, 'blue');
+        }
+
+        // 生成气泡图
+        function generateBubble() {
+            generateChart('bubble', 'bubble-chart', 'bubble-info', {
+                xAxis: 0, yAxis: 1, size: 2
+            }, 'green');
+        }
+
+        // 生成面积图
+        function generateArea() {
+            generateChart('area', 'area-chart', 'area-info', {
+                xAxis: 0, yAxis: 1
+            }, 'purple');
+        }
+
+        // 生成仪表盘图
+        function generateGauge() {
+            generateChart('gauge', 'gauge-chart', 'gauge-info', {
+                value: 0
+            }, 'red');
+        }
+
+        // 通用图表生成函数
+        function generateChart(type, canvasId, infoId, columns, theme) {
+            const infoDiv = document.getElementById(infoId);
+            infoDiv.innerHTML = '<i class="fa-solid fa-spinner loading-spinner mr-2"></i>正在生成...';
+            
+            const startTime = performance.now();
+            
+            try {
+                // 获取数据
+                const data = demoData[type];
+                
+                // 验证数据
+                const validation = ChartDataValidator.validateData(data, type, columns);
+                if (!validation.valid) {
+                    throw new Error(validation.errors.join(', '));
+                }
+                
+                // 准备数据
+                const chartData = ChartGenerator.prepareMultiColumnData(data, columns, type);
+                
+                // 获取颜色主题
+                const colors = ChartGenerator.getThemeColors(theme);
+                
+                // 创建配置
+                const config = ChartGenerator.createExtendedConfig(type, chartData, colors, {
+                    title: `${type.toUpperCase()} 演示`,
+                    showLegend: true,
+                    showGrid: true
+                });
+                
+                // 清除现有图表
+                if (charts[canvasId]) {
+                    charts[canvasId].destroy();
+                }
+                
+                // 创建图表
+                const canvas = document.getElementById(canvasId);
+                charts[canvasId] = new Chart(canvas, config);
+                
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                
+                // 更新统计
+                stats.totalCharts++;
+                stats.totalTime += duration;
+                stats.successCount++;
+                
+                // 显示信息
+                let dataInfo = '';
+                if (chartData.points) {
+                    dataInfo = `数据点: ${chartData.points.length}`;
+                } else if (chartData.values) {
+                    dataInfo = `数据点: ${chartData.values.length}`;
+                } else if (chartData.value !== undefined) {
+                    dataInfo = `数值: ${chartData.value}`;
+                }
+                
+                infoDiv.innerHTML = `
+                    <i class="fa-solid fa-check text-green-600 mr-2"></i>
+                    生成成功 | 耗时: ${duration.toFixed(2)}ms | ${dataInfo}
+                `;
+                
+            } catch (error) {
+                console.error(`${type} 生成失败:`, error);
+                stats.totalCharts++;
+                
+                infoDiv.innerHTML = `
+                    <i class="fa-solid fa-times text-red-600 mr-2"></i>
+                    生成失败: ${error.message}
+                `;
+            }
+            
+            updateStats();
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            document.getElementById('total-charts').textContent = stats.totalCharts;
+            
+            const avgTime = stats.successCount > 0 ? 
+                (stats.totalTime / stats.successCount).toFixed(2) : 0;
+            document.getElementById('avg-time').textContent = avgTime + 'ms';
+            
+            const successRate = stats.totalCharts > 0 ? 
+                ((stats.successCount / stats.totalCharts) * 100).toFixed(1) : 100;
+            document.getElementById('success-rate').textContent = successRate + '%';
+        }
+
+        // 页面加载完成后自动生成演示图表
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('增强图表类型演示页面已加载');
+            
+            // 检查依赖
+            const requiredClasses = [
+                'ChartGenerator', 'ChartDataValidator', 'ChartTypeManager',
+                'PerformanceMonitor', 'AdvancedDataProcessor'
+            ];
+            
+            const missingClasses = requiredClasses.filter(className => 
+                typeof window[className] === 'undefined'
+            );
+            
+            if (missingClasses.length > 0) {
+                console.error('缺少必要的类:', missingClasses);
+                alert('缺少必要的JavaScript类，请检查文件加载');
+                return;
+            }
+            
+            // 自动生成所有演示图表
+            setTimeout(() => {
+                generateScatter();
+                setTimeout(() => generateBubble(), 500);
+                setTimeout(() => generateArea(), 1000);
+                setTimeout(() => generateGauge(), 1500);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
