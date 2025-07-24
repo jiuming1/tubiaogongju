@@ -1,0 +1,43 @@
+{
+  "name": "data-visualization-tool",
+  "version": "1.0.0",
+  "description": "一个简单易用的Web数据可视化工具",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server -p 8000 -c-1",
+    "test": "echo \"请在浏览器中打开 tests/test-runner.html 运行测试\"",
+    "build": "npm run build:css",
+    "build:css": "tailwindcss -i ./src/input.css -o ./css/output.css --watch=false",
+    "dev": "tailwindcss -i ./src/input.css -o ./css/output.css --watch",
+    "deploy": "echo \"部署到GitHub Pages - 推送到main分支即可自动部署\""
+  },
+  "keywords": [
+    "data-visualization",
+    "charts",
+    "excel",
+    "csv",
+    "javascript",
+    "chart.js",
+    "tailwindcss"
+  ],
+  "author": "DataViz Team",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "postcss-cli": "^11.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jiuming1/tubiaogongju.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jiuming1/tubiaogongju/issues"
+  },
+  "homepage": "https://jiuming1.github.io/tubiaogongju/",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

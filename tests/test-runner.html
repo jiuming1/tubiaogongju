@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据可视化工具 - 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .test-summary {
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>数据可视化工具 - 单元测试</h1>
+    
+    <div class="test-container">
+        <h2>测试控制</h2>
+        <button onclick="runAllTests()">运行所有测试</button>
+        <button onclick="clearResults()">清除结果</button>
+    </div>
+    
+    <div class="test-container">
+        <h2>测试结果</h2>
+        <div id="test-results"></div>
+        <div id="test-summary"></div>
+    </div>
+
+    <!-- 引入被测试的模块 -->
+    <script src="../js/notification-system.js"></script>
+    <script src="../js/file-handler.js"></script>
+    <script src="../js/data-parser.js"></script>
+    <script src="../js/chart-generator.js"></script>
+    <script src="../js/export-manager.js"></script>
+
+    <script>
+        // 简单的测试框架
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+            
+            test(name, testFunction) {
+                this.tests.push({ name, testFunction });
+            }
+            
+            async runAll() {
+                this.results = [];
+                const resultsContainer = document.getElementById('test-results');
+                resultsContainer.innerHTML = '';
+                
+                for (const test of this.tests) {
+                    try {
+                        await test.testFunction();
+                        this.addResult(test.name, true);
+                    } catch (error) {
+                        this.addResult(test.name, false, error.message);
+                    }
+                }
+                
+                this.showSummary();
+            }
+            
+            addResult(testName, passed, error = null) {
+                this.results.push({ testName, passed, error });
+                
+                const resultsContainer = document.getElementById('test-results');
+                const resultDiv = document.createElement('div');
+                resultDiv.className = `test-result ${passed ? 'test-pass' : 'test-fail'}`;
+                resultDiv.innerHTML = `
+                    <strong>${passed ? '✓' : '✗'} ${testName}</strong>
+                    ${error ? `<br><small>错误: ${error}</small>` : ''}
+                `;
+                resultsContainer.appendChild(resultDiv);
+            }
+            
+            showSummary() {
+                const passed = this.results.filter(r => r.passed).length;
+                const total = this.results.length;
+                const summaryContainer = document.getElementById('test-summary');
+                
+                summaryContainer.className = `test-summary ${passed === total ? 'test-pass' : 'test-fail'}`;
+                summaryContainer.innerHTML = `
+                    测试完成: ${passed}/${total} 通过
+                    ${passed === total ? '🎉 所有测试通过!' : '❌ 部分测试失败'}
+                `;
+            }
+        }
+        
+        const testRunner = new TestRunner();
+        
+        // 断言函数
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message || '断言失败');
+            }
+        }
+        
+        function assertEquals(actual, expected, message) {
+            if (actual !== expected) {
+                throw new Error(message || `期望: ${expected}, 实际: ${actual}`);
+            }
+        }
+        
+        function assertNotNull(value, message) {
+            if (value === null || value === undefined) {
+                throw new Error(message || '值不应为null或undefined');
+            }
+        }
+        
+        // 文件处理测试
+        testRunner.test('FileHandler.formatFileSize - 基本功能', () => {
+            assertEquals(FileHandler.formatFileSize(0), '0 Bytes');
+            assertEquals(FileHandler.formatFileSize(1024), '1 KB');
+            assertEquals(FileHandler.formatFileSize(1048576), '1 MB');
+            assertEquals(FileHandler.formatFileSize(1073741824), '1 GB');
+        });
+        
+        testRunner.test('FileHandler.validateFileType - 支持的文件类型', () => {
+            const xlsxFile = { name: 'test.xlsx', type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+            const csvFile = { name: 'test.csv', type: 'text/csv' };
+            const txtFile = { name: 'test.txt', type: 'text/plain' };
+            
+            assert(FileHandler.validateFileType(xlsxFile), 'XLSX文件应该被接受');
+            assert(FileHandler.validateFileType(csvFile), 'CSV文件应该被接受');
+            assert(!FileHandler.validateFileType(txtFile), 'TXT文件应该被拒绝');
+        });
+        
+        // 数据解析测试
+        testRunner.test('DataParser.parseCSV - 基本CSV解析', () => {
+            const csvText = 'Name,Age,City\\nJohn,25,New York\\nJane,30,London';
+            const result = DataParser.parseCSV(csvText);
+            
+            assertEquals(result.length, 3, '应该解析出3行数据');
+            assertEquals(result[0][0], 'Name', '第一行第一列应该是Name');
+            assertEquals(result[1][1], '25', '第二行第二列应该是25');
+        });
+        
+        testRunner.test('DataParser.detectColumnTypes - 数据类型检测', () => {
+            const testData = [
+                ['Name', 'Age', 'Score'],
+                ['John', '25', '85.5'],
+                ['Jane', '30', '92.0'],
+                ['Bob', '28', '78.5']
+            ];
+            
+            const types = DataParser.detectColumnTypes(testData);
+            assertEquals(types[0], 'string', '第一列应该是字符串类型');
+            assertEquals(types[1], 'number', '第二列应该是数字类型');
+            assertEquals(types[2], 'number', '第三列应该是数字类型');
+        });
+        
+        testRunner.test('DataParser.validateData - 数据验证', () => {
+            const validData = [['Header1', 'Header2'], ['Value1', 'Value2']];
+            const invalidData1 = [];
+            const invalidData2 = [['Header1', 'Header2']];
+            
+            assert(DataParser.validateData(validData), '有效数据应该通过验证');
+            assert(!DataParser.validateData(invalidData1), '空数据应该验证失败');
+            assert(!DataParser.validateData(invalidData2), '只有标题行的数据应该验证失败');
+        });
+        
+        // 图表生成测试
+        testRunner.test('ChartGenerator.prepareData - 数据准备', () => {
+            const testData = [
+                ['Month', 'Sales'],
+                ['Jan', '1000'],
+                ['Feb', '1200'],
+                ['Mar', '900']
+            ];
+            
+            const result = ChartGenerator.prepareData(testData, 0, 1);
+            assertEquals(result.labels.length, 3, '应该有3个标签');
+            assertEquals(result.values.length, 3, '应该有3个数值');
+            assertEquals(result.labels[0], 'Jan', '第一个标签应该是Jan');
+            assertEquals(result.values[0], 1000, '第一个数值应该是1000');
+        });
+        
+        testRunner.test('ChartGenerator.getThemeColors - 主题颜色', () => {
+            const blueColors = ChartGenerator.getThemeColors('blue');
+            const greenColors = ChartGenerator.getThemeColors('green');
+            const defaultColors = ChartGenerator.getThemeColors('nonexistent');
+            
+            assert(Array.isArray(blueColors), '应该返回颜色数组');
+            assert(blueColors.length > 0, '颜色数组不应为空');
+            assert(blueColors[0].startsWith('#'), '颜色应该是十六进制格式');
+            assertEquals(defaultColors, blueColors, '不存在的主题应该返回默认蓝色主题');
+        });
+        
+        // 通知系统测试
+        testRunner.test('NotificationSystem.getTypeConfig - 类型配置', () => {
+            const successConfig = NotificationSystem.getTypeConfig('success');
+            const errorConfig = NotificationSystem.getTypeConfig('error');
+            const defaultConfig = NotificationSystem.getTypeConfig('unknown');
+            
+            assertNotNull(successConfig.icon, '成功配置应该有图标');
+            assertNotNull(errorConfig.bgColor, '错误配置应该有背景色');
+            assertEquals(defaultConfig.icon, 'fa-info-circle', '未知类型应该使用默认图标');
+        });
+        
+        // 导出管理测试
+        testRunner.test('ExportManager.checkBrowserSupport - 浏览器支持检查', () => {
+            const support = ExportManager.checkBrowserSupport();
+            
+            assertNotNull(support.canvas, '应该检查Canvas支持');
+            assertNotNull(support.download, '应该检查下载支持');
+            assertNotNull(support.blob, '应该检查Blob支持');
+        });
+        
+        // 图表销毁测试
+        testRunner.test('ChartGenerator.safeDestroyChart - 安全销毁', () => {
+            // 创建一个模拟的canvas元素
+            const mockCanvas = document.createElement('canvas');
+            mockCanvas.id = 'test-canvas';
+            document.body.appendChild(mockCanvas);
+            
+            // 模拟图表对象
+            const mockChart = {
+                destroy: function() {
+                    this.destroyed = true;
+                }
+            };
+            
+            // 测试安全销毁
+            ChartGenerator.safeDestroyChart(mockChart, mockCanvas);
+            assert(mockChart.destroyed, '图表应该被销毁');
+            
+            // 清理
+            document.body.removeChild(mockCanvas);
+        });
+        
+        // 边界情况测试
+        testRunner.test('边界情况 - 空字符串处理', () => {
+            assertEquals(FileHandler.formatFileSize(0), '0 Bytes');
+            
+            const emptyCSV = '';
+            const result = DataParser.parseCSV(emptyCSV);
+            assertEquals(result.length, 0, '空CSV应该返回空数组');
+        });
+        
+        testRunner.test('边界情况 - 特殊字符处理', () => {
+            const csvWithQuotes = 'Name,Description\\n"John, Jr.","A person with, comma"';
+            const result = DataParser.parseCSV(csvWithQuotes);
+            
+            assertEquals(result.length, 2, '应该正确解析带引号的CSV');
+            assertEquals(result[1][0], 'John, Jr.', '应该正确处理引号内的逗号');
+        });
+        
+        // 运行测试的函数
+        function runAllTests() {
+            testRunner.runAll();
+        }
+        
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('test-summary').innerHTML = '';
+        }
+        
+        // 页面加载完成后自动运行测试
+        window.addEventListener('load', () => {
+            console.log('测试页面已加载，可以运行测试');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 自定义样式 */
+@layer utilities {
+    .content-auto {
+        content-visibility: auto;
+    }
+    .card-shadow {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    .hover-scale {
+        transition: transform 0.3s ease;
+    }
+    .hover-scale:hover {
+        transform: scale(1.02);
+    }
+    .progress-bar {
+        transition: width 0.5s ease;
+    }
+    .touch-target {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    .focus-visible {
+        outline: 2px solid #165DFF;
+        outline-offset: 2px;
+    }
+    .loading-spinner {
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    @media (max-width: 640px) {
+        .chart-type-option, .export-option, .theme-btn {
+            min-height: 48px;
+            padding: 12px;
+        }
+        .mobile-friendly-input {
+            font-size: 16px; /* 防止iOS缩放 */
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .loading-spinner {
+            animation: none;
+        }
+        .transition-all, .transition-colors, .transition-shadow {
+            transition: none;
+        }
+    }
+}
