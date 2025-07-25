@@ -405,8 +405,12 @@ class DataVisualizationApp {
         this.data = null;
         this.fileInfo.classList.add('hidden');
         this.dataPreview.classList.add('hidden');
-        this.xAxisSelect.innerHTML = '<option value="">请选择...</option>';
-        this.yAxisSelect.innerHTML = '<option value="">请选择...</option>';
+        
+        // 实时获取并重置列选择器
+        const xAxisSelect = document.getElementById('x-axis-select');
+        const yAxisSelect = document.getElementById('y-axis-select');
+        if (xAxisSelect) xAxisSelect.innerHTML = '<option value="">请选择...</option>';
+        if (yAxisSelect) yAxisSelect.innerHTML = '<option value="">请选择...</option>';
         
         // 重置上传状态管理器
         this.uploadStateManager.reset();
@@ -452,6 +456,14 @@ class DataVisualizationApp {
     generateOptimizedColumnSelectors(chartType) {
         const columnSelectorsContainer = document.getElementById('column-selectors');
         
+        // 检查容器是否存在
+        if (!columnSelectorsContainer) {
+            console.error('generateOptimizedColumnSelectors - column-selectors 容器不存在');
+            throw new Error('列选择器容器未找到');
+        }
+        
+        console.log('generateOptimizedColumnSelectors - 容器检查通过:', columnSelectorsContainer);
+        
         // 检测列数据类型
         const columnTypes = AdvancedDataProcessor.detectAdvancedColumnTypes(this.data);
         
@@ -491,11 +503,26 @@ class DataVisualizationApp {
                 html = this.generateBasicColumnSelectors(columnTypes, chartType);
         }
         
+        console.log('generateOptimizedColumnSelectors - 设置HTML内容');
         columnSelectorsContainer.innerHTML = html;
         
         // 使用setTimeout确保DOM元素已经渲染
         setTimeout(() => {
+            console.log('generateOptimizedColumnSelectors - DOM更新后检查');
+            
+            // 检查生成的DOM元素
+            const elements = ['x-axis-select', 'y-axis-select', 'value-select', 'group-select'];
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                console.log(`  ${id}:`, element ? `存在 (选项数: ${element.options.length})` : '不存在');
+            });
+            
             this.updateElementReferences();
+            
+            // 自动选择默认列
+            this.autoSelectDefaultColumns(chartType);
+            
+            console.log('generateOptimizedColumnSelectors - 元素引用更新完成');
         }, 0);
     }
     
@@ -509,6 +536,303 @@ class DataVisualizationApp {
         this.categorySelect = document.getElementById('category-select');
         this.angleSelect = document.getElementById('angle-select');
         this.radiusSelect = document.getElementById('radius-select');
+    }
+    
+    // 自动选择默认列
+    autoSelectDefaultColumns(chartType) {
+        console.log(`autoSelectDefaultColumns - 为 ${chartType} 自动选择默认列`);
+        
+        // 等待一小段时间确保DOM完全更新
+        setTimeout(() => {
+            const xAxisSelect = document.getElementById('x-axis-select');
+            const yAxisSelect = document.getElementById('y-axis-select');
+            const valueSelect = document.getElementById('value-select');
+            const groupSelect = document.getElementById('group-select');
+            const sizeSelect = document.getElementById('size-select');
+            
+            console.log('autoSelectDefaultColumns - DOM元素检查:');
+            console.log('  xAxisSelect:', !!xAxisSelect, xAxisSelect ? `(${xAxisSelect.options.length} 选项)` : '');
+            console.log('  yAxisSelect:', !!yAxisSelect, yAxisSelect ? `(${yAxisSelect.options.length} 选项)` : '');
+            console.log('  valueSelect:', !!valueSelect, valueSelect ? `(${valueSelect.options.length} 选项)` : '');
+            console.log('  groupSelect:', !!groupSelect, groupSelect ? `(${groupSelect.options.length} 选项)` : '');
+            console.log('  sizeSelect:', !!sizeSelect, sizeSelect ? `(${sizeSelect.options.length} 选项)` : '');
+            
+            // 根据图表类型自动选择合适的默认列
+            this.performAutoSelection(chartType, xAxisSelect, yAxisSelect, valueSelect, groupSelect, sizeSelect);
+            
+        }, 50); // 延迟50ms确保DOM稳定
+    }
+    
+    // 执行自动选择逻辑
+    performAutoSelection(chartType, xAxisSelect, yAxisSelect, valueSelect, groupSelect, sizeSelect) {
+        console.log(`performAutoSelection - 开始为 ${chartType} 执行自动选择`);
+        
+        switch (chartType) {
+            case 'area':
+            case 'line':
+            case 'bar':
+                // 基础图表：选择前两个可用列
+                if (xAxisSelect && xAxisSelect.options.length > 1) {
+                    xAxisSelect.selectedIndex = 1;
+                    console.log(`  X轴自动选择: ${xAxisSelect.value}`);
+                }
+                if (yAxisSelect && yAxisSelect.options.length > 2) {
+                    yAxisSelect.selectedIndex = 2;
+                    console.log(`  Y轴自动选择: ${yAxisSelect.value}`);
+                } else if (yAxisSelect && yAxisSelect.options.length > 1) {
+                    yAxisSelect.selectedIndex = 1;
+                    console.log(`  Y轴自动选择: ${yAxisSelect.value}`);
+                }
+                break;
+                
+            case 'scatter':
+                // 散点图：需要两个数值列
+                this.selectNumericColumns(xAxisSelect, yAxisSelect, null, null, null, 'scatter');
+                break;
+                
+            case 'heatmap':
+                // 热力图：需要X、Y、值三个维度
+                if (xAxisSelect && xAxisSelect.options.length > 1) {
+                    xAxisSelect.selectedIndex = 1;
+                    console.log(`  X轴自动选择: ${xAxisSelect.value}`);
+                }
+                if (yAxisSelect && yAxisSelect.options.length > 2) {
+                    yAxisSelect.selectedIndex = 2;
+                    console.log(`  Y轴自动选择: ${yAxisSelect.value}`);
+                }
+                if (valueSelect && valueSelect.options.length > 3) {
+                    valueSelect.selectedIndex = 3;
+                    console.log(`  值自动选择: ${valueSelect.value}`);
+                } else if (valueSelect && valueSelect.options.length > 1) {
+                    // 如果只有少量列，选择最后一个作为值
+                    valueSelect.selectedIndex = valueSelect.options.length - 1;
+                    console.log(`  值自动选择: ${valueSelect.value}`);
+                }
+                break;
+                
+            case 'waterfall':
+                // 瀑布图：需要类别和数值
+                if (xAxisSelect && xAxisSelect.options.length > 1) {
+                    xAxisSelect.selectedIndex = 1;
+                    console.log(`  X轴自动选择: ${xAxisSelect.value}`);
+                }
+                if (yAxisSelect && yAxisSelect.options.length > 2) {
+                    yAxisSelect.selectedIndex = 2;
+                    console.log(`  Y轴自动选择: ${yAxisSelect.value}`);
+                } else if (yAxisSelect && yAxisSelect.options.length > 1) {
+                    yAxisSelect.selectedIndex = 1;
+                    console.log(`  Y轴自动选择: ${yAxisSelect.value}`);
+                }
+                break;
+                
+            case 'gauge':
+                // 仪表盘图：只需要一个数值列
+                if (yAxisSelect && yAxisSelect.options.length > 1) {
+                    // 优先选择数值类型的列
+                    let selectedIndex = 1;
+                    for (let i = 1; i < yAxisSelect.options.length; i++) {
+                        const optionText = yAxisSelect.options[i].text.toLowerCase();
+                        if (optionText.includes('数值') || optionText.includes('值') || 
+                            optionText.includes('rate') || optionText.includes('percent')) {
+                            selectedIndex = i;
+                            break;
+                        }
+                    }
+                    yAxisSelect.selectedIndex = selectedIndex;
+                    console.log(`  Y轴自动选择: ${yAxisSelect.value}`);
+                }
+                break;
+                
+            case 'bubble':
+                // 气泡图：需要X、Y、大小三个数值列
+                this.selectNumericColumns(xAxisSelect, yAxisSelect, null, null, sizeSelect, 'bubble');
+                break;
+                
+            case 'boxplot':
+                // 箱线图：需要数值列，分组列可选
+                if (yAxisSelect && yAxisSelect.options.length > 1) {
+                    yAxisSelect.selectedIndex = yAxisSelect.options.length > 2 ? 2 : 1;
+                    console.log(`  Y轴自动选择: ${yAxisSelect.value}`);
+                }
+                if (groupSelect && groupSelect.options.length > 1) {
+                    groupSelect.selectedIndex = 1;
+                    console.log(`  分组自动选择: ${groupSelect.value}`);
+                }
+                break;
+                
+            default:
+                // 默认情况：选择前两个可用列
+                if (xAxisSelect && xAxisSelect.options.length > 1) {
+                    xAxisSelect.selectedIndex = 1;
+                    console.log(`  X轴自动选择: ${xAxisSelect.value}`);
+                }
+                if (yAxisSelect && yAxisSelect.options.length > 2) {
+                    yAxisSelect.selectedIndex = 2;
+                    console.log(`  Y轴自动选择: ${yAxisSelect.value}`);
+                }
+                break;
+        }
+        
+        console.log('performAutoSelection - 自动选择完成');
+        
+        // 验证选择结果
+        setTimeout(() => {
+            console.log('performAutoSelection - 验证选择结果:');
+            if (xAxisSelect) console.log(`  X轴最终值: "${xAxisSelect.value}"`);
+            if (yAxisSelect) console.log(`  Y轴最终值: "${yAxisSelect.value}"`);
+            if (valueSelect) console.log(`  值最终值: "${valueSelect.value}"`);
+            if (groupSelect) console.log(`  分组最终值: "${groupSelect.value}"`);
+            if (sizeSelect) console.log(`  大小最终值: "${sizeSelect.value}"`);
+        }, 10);
+    }
+    
+    // 智能选择数值列
+    selectNumericColumns(xAxisSelect, yAxisSelect, valueSelect, groupSelect, sizeSelect, chartType) {
+        console.log(`selectNumericColumns - 为 ${chartType} 智能选择数值列`);
+        
+        // 分析数据，找出数值列
+        const numericColumns = this.findNumericColumns();
+        console.log(`  发现 ${numericColumns.length} 个数值列:`, numericColumns);
+        
+        if (numericColumns.length < 2 && (chartType === 'scatter' || chartType === 'bubble')) {
+            console.log(`  警告: ${chartType} 需要至少2个数值列，但只找到 ${numericColumns.length} 个`);
+        }
+        
+        // 为散点图选择列
+        if (chartType === 'scatter') {
+            if (xAxisSelect && numericColumns.length > 0) {
+                const xIndex = numericColumns[0] + 1; // +1 因为选项中第0个是空选项
+                if (xIndex < xAxisSelect.options.length) {
+                    xAxisSelect.selectedIndex = xIndex;
+                    console.log(`  X轴选择数值列: ${xAxisSelect.value} (${xAxisSelect.options[xIndex].text})`);
+                }
+            }
+            
+            if (yAxisSelect && numericColumns.length > 1) {
+                const yIndex = numericColumns[1] + 1;
+                if (yIndex < yAxisSelect.options.length) {
+                    yAxisSelect.selectedIndex = yIndex;
+                    console.log(`  Y轴选择数值列: ${yAxisSelect.value} (${yAxisSelect.options[yIndex].text})`);
+                }
+            }
+        }
+        
+        // 为气泡图选择列
+        if (chartType === 'bubble') {
+            if (xAxisSelect && numericColumns.length > 0) {
+                const xIndex = numericColumns[0] + 1;
+                if (xIndex < xAxisSelect.options.length) {
+                    xAxisSelect.selectedIndex = xIndex;
+                    console.log(`  X轴选择数值列: ${xAxisSelect.value} (${xAxisSelect.options[xIndex].text})`);
+                }
+            }
+            
+            if (yAxisSelect && numericColumns.length > 1) {
+                const yIndex = numericColumns[1] + 1;
+                if (yIndex < yAxisSelect.options.length) {
+                    yAxisSelect.selectedIndex = yIndex;
+                    console.log(`  Y轴选择数值列: ${yAxisSelect.value} (${yAxisSelect.options[yIndex].text})`);
+                }
+            }
+            
+            if (sizeSelect && numericColumns.length > 2) {
+                const sizeIndex = numericColumns[2] + 1;
+                if (sizeIndex < sizeSelect.options.length) {
+                    sizeSelect.selectedIndex = sizeIndex;
+                    console.log(`  大小选择数值列: ${sizeSelect.value} (${sizeSelect.options[sizeIndex].text})`);
+                }
+            } else if (sizeSelect && numericColumns.length > 0) {
+                // 如果没有第三个数值列，重复使用第一个
+                const sizeIndex = numericColumns[0] + 1;
+                if (sizeIndex < sizeSelect.options.length) {
+                    sizeSelect.selectedIndex = sizeIndex;
+                    console.log(`  大小选择数值列(重复): ${sizeSelect.value} (${sizeSelect.options[sizeIndex].text})`);
+                }
+            }
+        }
+    }
+    
+    // 找出数据中的数值列
+    findNumericColumns() {
+        if (!this.data || this.data.length < 2) {
+            return [];
+        }
+        
+        const numericColumns = [];
+        const columnCount = this.data[0].length;
+        
+        // 检查每一列
+        for (let col = 0; col < columnCount; col++) {
+            let numericCount = 0;
+            let totalCount = 0;
+            
+            // 检查该列的数据（跳过表头）
+            for (let row = 1; row < this.data.length; row++) {
+                const value = this.data[row][col];
+                if (value !== null && value !== undefined && value !== '') {
+                    totalCount++;
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue) && isFinite(numValue)) {
+                        numericCount++;
+                    }
+                }
+            }
+            
+            // 如果80%以上的数据是数值，认为是数值列
+            const numericRatio = totalCount > 0 ? numericCount / totalCount : 0;
+            if (numericRatio >= 0.8) {
+                numericColumns.push(col);
+                console.log(`  列${col} (${this.data[0][col]}) 是数值列: ${numericCount}/${totalCount} (${Math.round(numericRatio * 100)}%)`);
+            } else {
+                console.log(`  列${col} (${this.data[0][col]}) 不是数值列: ${numericCount}/${totalCount} (${Math.round(numericRatio * 100)}%)`);
+            }
+        }
+        
+        return numericColumns;
+    }
+    
+    // 确保列已被选择
+    ensureColumnsSelected() {
+        console.log('ensureColumnsSelected - 检查列选择状态');
+        
+        const xAxisSelect = document.getElementById('x-axis-select');
+        const yAxisSelect = document.getElementById('y-axis-select');
+        const valueSelect = document.getElementById('value-select');
+        const groupSelect = document.getElementById('group-select');
+        
+        let needsAutoSelect = false;
+        
+        // 检查是否有空的必需选择器
+        if (xAxisSelect && xAxisSelect.value === '' && xAxisSelect.options.length > 1) {
+            console.log('ensureColumnsSelected - X轴选择器为空，需要自动选择');
+            needsAutoSelect = true;
+        }
+        
+        if (yAxisSelect && yAxisSelect.value === '' && yAxisSelect.options.length > 1) {
+            console.log('ensureColumnsSelected - Y轴选择器为空，需要自动选择');
+            needsAutoSelect = true;
+        }
+        
+        if (valueSelect && valueSelect.value === '' && valueSelect.options.length > 1) {
+            console.log('ensureColumnsSelected - 值选择器为空，需要自动选择');
+            needsAutoSelect = true;
+        }
+        
+        if (needsAutoSelect) {
+            console.log('ensureColumnsSelected - 执行自动选择');
+            this.autoSelectDefaultColumns(this.selectedChartType);
+            
+            // 再次检查选择结果
+            setTimeout(() => {
+                console.log('ensureColumnsSelected - 自动选择后的状态:');
+                if (xAxisSelect) console.log(`  X轴: "${xAxisSelect.value}"`);
+                if (yAxisSelect) console.log(`  Y轴: "${yAxisSelect.value}"`);
+                if (valueSelect) console.log(`  值: "${valueSelect.value}"`);
+                if (groupSelect) console.log(`  分组: "${groupSelect.value}"`);
+            }, 100);
+        } else {
+            console.log('ensureColumnsSelected - 列选择状态正常');
+        }
     }
     
     // 生成基础图表类型的列选择器
@@ -936,12 +1260,35 @@ class DataVisualizationApp {
             return;
         }
         
+        console.log('handleChartGeneration - 开始处理图表生成');
+        console.log('handleChartGeneration - 当前图表类型:', this.selectedChartType);
+        
+        // 在获取列配置前，确保自动选择已执行
+        this.ensureColumnsSelected();
+        
         // 获取选中的列配置
         const selectedColumns = this.getSelectedColumns();
+        console.log('handleChartGeneration - 获取到的列配置:', selectedColumns);
         
         // 验证选中的列
+        console.log('handleChartGeneration - 验证前的数据检查:');
+        console.log('  数据行数:', this.data.length);
+        console.log('  数据列数:', this.data[0] ? this.data[0].length : 0);
+        console.log('  表头:', this.data[0]);
+        console.log('  第一行数据:', this.data[1]);
+        console.log('  选择的列:', selectedColumns);
+        
+        // 检查选择的列对应的实际数据
+        if (selectedColumns.xAxis !== undefined && selectedColumns.yAxis !== undefined) {
+            console.log('  X轴列数据示例:', this.data.slice(1, 4).map(row => row[selectedColumns.xAxis]));
+            console.log('  Y轴列数据示例:', this.data.slice(1, 4).map(row => row[selectedColumns.yAxis]));
+        }
+        
         const validation = ChartDataValidator.validateData(this.data, this.selectedChartType, selectedColumns);
+        console.log('handleChartGeneration - 验证结果:', validation);
+        
         if (!validation.valid) {
+            console.error('handleChartGeneration - 验证失败:', validation.errors);
             NotificationSystem.show('错误', validation.errors.join(', '), 'error');
             return;
         }
@@ -999,7 +1346,7 @@ class DataVisualizationApp {
                 selectedColumns = this.getHeatmapColumns();
                 break;
             case 'waterfall':
-                selectedColumns = this.getBasicColumns();
+                selectedColumns = this.getWaterfallColumns();
                 break;
             case 'gauge':
                 selectedColumns = this.getGaugeColumns();
@@ -1021,22 +1368,51 @@ class DataVisualizationApp {
         const xAxisSelect = document.getElementById('x-axis-select');
         const yAxisSelect = document.getElementById('y-axis-select');
         
+        console.log(`getBasicColumns [${this.selectedChartType}] - DOM检查:`);
+        console.log('  X轴选择器存在:', !!xAxisSelect);
+        console.log('  Y轴选择器存在:', !!yAxisSelect);
+        
+        if (xAxisSelect) {
+            console.log('  X轴选择器选项数:', xAxisSelect.options.length);
+            console.log('  X轴选择器当前索引:', xAxisSelect.selectedIndex);
+        }
+        
+        if (yAxisSelect) {
+            console.log('  Y轴选择器选项数:', yAxisSelect.options.length);
+            console.log('  Y轴选择器当前索引:', yAxisSelect.selectedIndex);
+        }
+        
         const xColumn = xAxisSelect ? xAxisSelect.value : '';
         const yColumn = yAxisSelect ? yAxisSelect.value : '';
         
-        console.log(`getBasicColumns [${this.selectedChartType}] - X轴选择器:`, xAxisSelect, '值:', xColumn, '类型:', typeof xColumn);
-        console.log(`getBasicColumns [${this.selectedChartType}] - Y轴选择器:`, yAxisSelect, '值:', yColumn, '类型:', typeof yColumn);
+        console.log(`getBasicColumns [${this.selectedChartType}] - 值检查:`);
+        console.log('  X轴值:', `"${xColumn}"`, '类型:', typeof xColumn);
+        console.log('  Y轴值:', `"${yColumn}"`, '类型:', typeof yColumn);
         
         // 修复验证逻辑：检查是否为空字符串，而不是falsy值
         if (xColumn === '' || yColumn === '') {
-            console.error(`getBasicColumns [${this.selectedChartType}] - 缺少必要的列选择, X轴: "${xColumn}", Y轴: "${yColumn}"`);
+            console.error(`getBasicColumns [${this.selectedChartType}] - 缺少必要的列选择`);
+            console.error('  X轴值:', `"${xColumn}"`);
+            console.error('  Y轴值:', `"${yColumn}"`);
+            
+            // 检查是否是DOM元素不存在的问题
+            if (!xAxisSelect) {
+                console.error('  X轴选择器DOM元素不存在');
+            }
+            if (!yAxisSelect) {
+                console.error('  Y轴选择器DOM元素不存在');
+            }
+            
             throw new Error('请选择X轴和Y轴数据列');
         }
         
-        return {
+        const result = {
             xAxis: parseInt(xColumn),
             yAxis: parseInt(yColumn)
         };
+        
+        console.log(`getBasicColumns [${this.selectedChartType}] - 返回结果:`, result);
+        return result;
     }
     
     // 获取气泡图的列选择
@@ -1073,11 +1449,14 @@ class DataVisualizationApp {
         }
         
         const columns = {
-            yAxis: parseInt(yColumn)
+            yAxis: parseInt(yColumn),
+            // ChartDataValidator期望的字段名
+            values: parseInt(yColumn)
         };
         
-        if (groupColumn) {
+        if (groupColumn && groupColumn !== '') {
             columns.group = parseInt(groupColumn);
+            columns.groups = parseInt(groupColumn); // ChartDataValidator期望的字段名
         }
         
         return columns;
@@ -1089,24 +1468,41 @@ class DataVisualizationApp {
         const yAxisSelect = document.getElementById('y-axis-select');
         const valueSelect = document.getElementById('value-select');
         
+        console.log('getHeatmapColumns - DOM检查:');
+        console.log('  X轴选择器存在:', !!xAxisSelect);
+        console.log('  Y轴选择器存在:', !!yAxisSelect);
+        console.log('  强度值选择器存在:', !!valueSelect);
+        
         const xColumn = xAxisSelect ? xAxisSelect.value : '';
         const yColumn = yAxisSelect ? yAxisSelect.value : '';
         const valueColumn = valueSelect ? valueSelect.value : '';
         
-        console.log('getHeatmapColumns - X轴选择器:', xAxisSelect, '值:', xColumn);
-        console.log('getHeatmapColumns - Y轴选择器:', yAxisSelect, '值:', yColumn);
-        console.log('getHeatmapColumns - 强度值选择器:', valueSelect, '值:', valueColumn);
+        console.log('getHeatmapColumns - 值检查:');
+        console.log('  X轴值:', `"${xColumn}"`);
+        console.log('  Y轴值:', `"${yColumn}"`);
+        console.log('  强度值:', `"${valueColumn}"`);
         
         if (xColumn === '' || yColumn === '' || valueColumn === '') {
             console.error('getHeatmapColumns - 缺少必要的列选择');
+            console.error('  缺失的选择器:', [
+                !xAxisSelect && 'X轴选择器DOM不存在',
+                !yAxisSelect && 'Y轴选择器DOM不存在', 
+                !valueSelect && '强度值选择器DOM不存在',
+                xColumn === '' && 'X轴未选择',
+                yColumn === '' && 'Y轴未选择',
+                valueColumn === '' && '强度值未选择'
+            ].filter(Boolean));
             throw new Error('热力图需要选择X轴、Y轴和强度值数据列');
         }
         
-        return {
+        const result = {
             xAxis: parseInt(xColumn),
             yAxis: parseInt(yColumn),
             value: parseInt(valueColumn)
         };
+        
+        console.log('getHeatmapColumns - 返回结果:', result);
+        return result;
     }
     
     // 获取瀑布图的列选择
@@ -1114,42 +1510,74 @@ class DataVisualizationApp {
         const xAxisSelect = document.getElementById('x-axis-select');
         const yAxisSelect = document.getElementById('y-axis-select');
         
+        console.log('getWaterfallColumns - DOM检查:');
+        console.log('  X轴选择器存在:', !!xAxisSelect);
+        console.log('  Y轴选择器存在:', !!yAxisSelect);
+        
         const xColumn = xAxisSelect ? xAxisSelect.value : '';
         const yColumn = yAxisSelect ? yAxisSelect.value : '';
         
-        console.log('getWaterfallColumns - X轴选择器:', xAxisSelect, '值:', xColumn);
-        console.log('getWaterfallColumns - Y轴选择器:', yAxisSelect, '值:', yColumn);
+        console.log('getWaterfallColumns - 值检查:');
+        console.log('  X轴值:', `"${xColumn}"`);
+        console.log('  Y轴值:', `"${yColumn}"`);
         
         if (xColumn === '' || yColumn === '') {
             console.error('getWaterfallColumns - 缺少必要的列选择');
+            console.error('  问题分析:', [
+                !xAxisSelect && 'X轴选择器DOM不存在',
+                !yAxisSelect && 'Y轴选择器DOM不存在',
+                xColumn === '' && 'X轴未选择',
+                yColumn === '' && 'Y轴未选择'
+            ].filter(Boolean));
             throw new Error('瀑布图需要选择项目类别和变化值数据列');
         }
         
-        return {
+        const result = {
             xAxis: parseInt(xColumn),
             yAxis: parseInt(yColumn),
             // ChartDataValidator期望的字段名
             category: parseInt(xColumn),
             value: parseInt(yColumn)
         };
+        
+        console.log('getWaterfallColumns - 返回结果:', result);
+        return result;
     }
     
     // 获取仪表盘图的列选择
     getGaugeColumns() {
         const yAxisSelect = document.getElementById('y-axis-select');
         
+        console.log('getGaugeColumns - DOM检查:');
+        console.log('  Y轴选择器存在:', !!yAxisSelect);
+        
+        if (yAxisSelect) {
+            console.log('  Y轴选择器选项数:', yAxisSelect.options.length);
+            console.log('  Y轴选择器当前索引:', yAxisSelect.selectedIndex);
+        }
+        
         const yColumn = yAxisSelect ? yAxisSelect.value : '';
         
-        console.log('getGaugeColumns - Y轴选择器:', yAxisSelect, '值:', yColumn);
+        console.log('getGaugeColumns - 值检查:');
+        console.log('  Y轴值:', `"${yColumn}"`, '类型:', typeof yColumn);
         
         if (yColumn === '') {
             console.error('getGaugeColumns - 缺少必要的列选择');
+            console.error('  问题分析:', [
+                !yAxisSelect && 'Y轴选择器DOM不存在',
+                yColumn === '' && 'Y轴未选择'
+            ].filter(Boolean));
             throw new Error('仪表盘图需要选择指标数值数据列');
         }
         
-        return {
-            yAxis: parseInt(yColumn)
+        const result = {
+            yAxis: parseInt(yColumn),
+            // ChartDataValidator期望的字段名
+            value: parseInt(yColumn)
         };
+        
+        console.log('getGaugeColumns - 返回结果:', result);
+        return result;
     }
     
     // 获取极坐标图的列选择

@@ -154,26 +154,62 @@ class ChartDataValidator {
             hasNegativeValues: false
         };
         
-        // 基础验证（复用散点图验证逻辑）
-        const scatterValidation = this.validateScatterData(data, xColumn, yColumn);
-        validation.valid = scatterValidation.valid;
-        validation.errors = [...scatterValidation.errors];
-        validation.warnings = [...scatterValidation.warnings];
-        validation.validPointCount = scatterValidation.validPointCount;
-        validation.totalPointCount = scatterValidation.totalPointCount;
-        
-        if (!validation.valid) {
+        // 基础验证
+        if (!data || data.length < 2) {
+            validation.valid = false;
+            validation.errors.push('数据不足，面积图需要至少包含表头和一行数据');
             return validation;
         }
         
-        // 面积图特有验证
+        if (xColumn === yColumn) {
+            validation.valid = false;
+            validation.errors.push('X轴和Y轴不能选择相同的列');
+            return validation;
+        }
+        
+        // 检查列索引有效性
+        if (xColumn >= data[0].length || yColumn >= data[0].length) {
+            validation.valid = false;
+            validation.errors.push('选择的列索引超出数据范围');
+            return validation;
+        }
+        
+        // 验证数据点 - 面积图只需要Y轴是数字，X轴可以是文本
         for (let i = 1; i < data.length; i++) {
-            const yValue = parseFloat(data[i][yColumn]);
-            if (!isNaN(yValue) && yValue < 0) {
-                validation.hasNegativeValues = true;
+            validation.totalPointCount++;
+            
+            const xValue = data[i][xColumn];
+            const yValue = data[i][yColumn];
+            
+            // X轴可以是任何值（文本、数字等）
+            const y = parseFloat(yValue);
+            
+            if (!isNaN(y) && isFinite(y)) {
+                validation.validPointCount++;
+                
+                // 检查负值
+                if (y < 0) {
+                    validation.hasNegativeValues = true;
+                }
+            } else {
+                validation.warnings.push(`第${i}行Y轴数据无效: "${yValue}"`);
+            }
+            
+            // 检查X轴是否为空
+            if (xValue === null || xValue === undefined || xValue === '') {
+                validation.warnings.push(`第${i}行X轴数据为空`);
             }
         }
         
+        // 检查有效数据点数量
+        if (validation.validPointCount < 1) {
+            validation.valid = false;
+            validation.errors.push(`面积图需要至少1个有效数据点，当前只有${validation.validPointCount}个`);
+        } else if (validation.validPointCount < validation.totalPointCount * 0.5) {
+            validation.warnings.push(`有效数据点比例较低: ${validation.validPointCount}/${validation.totalPointCount}`);
+        }
+        
+        // 面积图特有警告
         if (validation.hasNegativeValues) {
             validation.warnings.push('数据包含负值，面积图可能显示异常');
         }
@@ -287,39 +323,69 @@ class ChartDataValidator {
             return validation;
         }
         
-        // 验证数据点
+        // 检查列索引有效性
+        if (xColumn >= data[0].length || yColumn >= data[0].length || valueColumn >= data[0].length) {
+            validation.valid = false;
+            validation.errors.push('选择的列索引超出数据范围');
+            return validation;
+        }
+        
+        // 验证数据点 - 热力图X轴和Y轴可以是文本，只有值列需要是数字
         for (let i = 1; i < data.length; i++) {
             validation.totalPointCount++;
             
-            const xValue = parseFloat(data[i][xColumn]);
-            const yValue = parseFloat(data[i][yColumn]);
-            const value = parseFloat(data[i][valueColumn]);
+            const xValue = data[i][xColumn];
+            const yValue = data[i][yColumn];
+            const valueValue = data[i][valueColumn];
             
-            if (!isNaN(xValue) && !isNaN(yValue) && !isNaN(value) && 
-                isFinite(xValue) && isFinite(yValue) && isFinite(value)) {
+            // X轴和Y轴可以是任何非空值（文本、数字等）
+            const value = parseFloat(valueValue);
+            
+            // 检查X轴和Y轴是否为空
+            const xValid = xValue !== null && xValue !== undefined && xValue !== '';
+            const yValid = yValue !== null && yValue !== undefined && yValue !== '';
+            const valueValid = !isNaN(value) && isFinite(value);
+            
+            if (xValid && yValid && valueValid) {
                 validation.validPointCount++;
-                validation.uniqueXValues.add(xValue);
-                validation.uniqueYValues.add(yValue);
+                validation.uniqueXValues.add(String(xValue)); // 转换为字符串存储
+                validation.uniqueYValues.add(String(yValue)); // 转换为字符串存储
                 validation.valueRange.min = Math.min(validation.valueRange.min, value);
                 validation.valueRange.max = Math.max(validation.valueRange.max, value);
+            } else {
+                // 记录无效数据的详细信息
+                if (!xValid) {
+                    validation.warnings.push(`第${i}行X轴数据无效: "${xValue}"`);
+                }
+                if (!yValid) {
+                    validation.warnings.push(`第${i}行Y轴数据无效: "${yValue}"`);
+                }
+                if (!valueValid) {
+                    validation.warnings.push(`第${i}行数值数据无效: "${valueValue}"`);
+                }
             }
         }
         
-        // 检查数据点数量
-        if (validation.validPointCount < 4) {
+        // 检查数据点数量 - 热力图至少需要1个有效数据点
+        if (validation.validPointCount < 1) {
             validation.valid = false;
-            validation.errors.push(`热力图需要至少4个有效数据点，当前只有${validation.validPointCount}个`);
+            validation.errors.push(`热力图需要至少1个有效数据点，当前只有${validation.validPointCount}个`);
         }
         
         // 检查数据分布
         const xCount = validation.uniqueXValues.size;
         const yCount = validation.uniqueYValues.size;
         
-        if (xCount < 2 || yCount < 2) {
+        if (xCount < 1 || yCount < 1) {
             validation.valid = false;
-            validation.errors.push('热力图需要X轴和Y轴都有至少2个不同的值');
+            validation.errors.push('热力图需要X轴和Y轴都有有效的值');
+        } else if (xCount === 1 && yCount === 1) {
+            validation.warnings.push('只有一个数据点，热力图效果可能不佳');
+        } else if (xCount === 1 || yCount === 1) {
+            validation.warnings.push('只有一个维度有多个值，热力图效果可能不佳');
         }
         
+        // 检查数据密度
         if (validation.validPointCount < xCount * yCount * 0.3) {
             validation.warnings.push('数据点稀疏，热力图效果可能不佳');
         }

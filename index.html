@@ -619,7 +619,7 @@
             } catch (error) {
                 console.error('DataVisualizationApp 初始化失败:', error);
             }
-            
+
             initializeEventListeners();
             initializeDefaults();
         });
@@ -1019,7 +1019,7 @@
         // 填充列选择器 - 使用优化的动态列选择器
         function populateColumnSelectors() {
             if (!data) return;
-            
+
             try {
                 // 使用DataVisualizationApp的优化列选择器逻辑
                 if (typeof app !== 'undefined' && app.updateColumnSelectors) {
@@ -1035,15 +1035,15 @@
                 generateBasicColumnSelectors();
             }
         }
-        
+
         // 基础列选择器生成（回退方案）
         function generateBasicColumnSelectors() {
             const columnSelectorsContainer = document.getElementById('column-selectors');
             if (!columnSelectorsContainer) return;
-            
+
             // 检测列数据类型
             const columnTypes = detectColumnTypes();
-            
+
             let html = `
                 <div class="space-y-4">
                     <div class="bg-blue-50 p-3 rounded-lg">
@@ -1061,14 +1061,14 @@
                         <select id="x-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
                             <option value="">请选择类别列...</option>
             `;
-            
+
             // 添加列选项
             data[0].forEach((column, index) => {
                 const type = columnTypes[index];
                 const typeLabel = type === 'number' ? ' (数值)' : type === 'date' ? ' (日期)' : ' (文本)';
                 html += `<option value="${index}">${column}${typeLabel}</option>`;
             });
-            
+
             html += `
                         </select>
                         <p class="text-xs text-gray-500 mt-1">选择用作图表标签的列</p>
@@ -1082,27 +1082,27 @@
                         <select id="y-axis-select" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200">
                             <option value="">请选择数值列...</option>
             `;
-            
+
             // 添加列选项
             data[0].forEach((column, index) => {
                 const type = columnTypes[index];
                 const typeLabel = type === 'number' ? ' (数值)' : type === 'date' ? ' (日期)' : ' (文本)';
                 html += `<option value="${index}">${column}${typeLabel}</option>`;
             });
-            
+
             html += `
                         </select>
                         <p class="text-xs text-gray-500 mt-1">选择用作图表数值的列</p>
                     </div>
                 </div>
             `;
-            
+
             columnSelectorsContainer.innerHTML = html;
-            
+
             // 更新元素引用
             updateElementReferences();
         }
-        
+
         // 更新DOM元素引用
         function updateElementReferences() {
             xAxisSelect = document.getElementById('x-axis-select');
@@ -1172,7 +1172,7 @@
                     </div>
                 `;
             }
-            
+
             // 重置元素引用
             xAxisSelect = null;
             yAxisSelect = null;
@@ -1250,7 +1250,7 @@
                     app.handleGenerateChart();
                     return;
                 }
-                
+
                 // 回退到基础实现
                 handleBasicChartGeneration();
             } catch (error) {
@@ -1258,7 +1258,7 @@
                 showNotification('错误', '图表生成失败: ' + error.message, 'error');
             }
         }
-        
+
         // 基础图表生成（回退方案）
         function handleBasicChartGeneration() {
             // 确保选择器存在
@@ -1266,7 +1266,7 @@
                 showNotification('错误', '请先选择数据列', 'error');
                 return;
             }
-            
+
             const xColumn = xAxisSelect.value;
             const yColumn = yAxisSelect.value;
 
