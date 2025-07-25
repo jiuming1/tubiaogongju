@@ -11,6 +11,9 @@ class DataVisualizationApp {
         // 上传状态管理器
         this.uploadStateManager = new UploadStateManager();
         
+        // 文件处理状态标志
+        this.isProcessingFile = false;
+        
         // DOM 元素
         this.initializeElements();
         
@@ -67,8 +70,40 @@ class DataVisualizationApp {
         window.addEventListener('scroll', () => this.handleNavbarScroll());
         
         // 文件上传
-        this.browseBtn.addEventListener('click', () => this.fileInput.click());
+        this.browseBtn.addEventListener('click', (e) => {
+            console.log('browseBtn clicked - 事件来源:', e.isTrusted ? '用户点击' : '程序触发');
+            console.log('browseBtn clicked - 调用栈:', new Error().stack);
+            this.fileInput.click();
+        });
         this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        
+        // 重写fileInput的click方法来追踪调用并添加防护
+        const originalClick = this.fileInput.click.bind(this.fileInput);
+        let lastClickTime = 0;
+        const CLICK_DEBOUNCE_TIME = 1000; // 1秒内不允许重复点击
+        
+        this.fileInput.click = () => {
+            const now = Date.now();
+            console.log('fileInput.click() 被调用');
+            console.log('调用栈:', new Error().stack);
+            console.log('距离上次点击时间:', now - lastClickTime, 'ms');
+            console.log('当前文件处理状态:', this.isProcessingFile);
+            
+            // 防止在文件处理期间触发
+            if (this.isProcessingFile) {
+                console.warn('fileInput.click() 被阻止 - 正在处理文件');
+                return;
+            }
+            
+            // 防止短时间内重复点击
+            if (now - lastClickTime < CLICK_DEBOUNCE_TIME) {
+                console.warn('fileInput.click() 被阻止 - 短时间内重复调用');
+                return;
+            }
+            
+            lastClickTime = now;
+            return originalClick();
+        };
         
         // 拖放功能
         this.setupDragAndDrop();
@@ -125,8 +160,21 @@ class DataVisualizationApp {
     
     // 处理文件选择
     handleFileSelect(e) {
+        console.log('handleFileSelect - 触发文件选择事件');
+        console.log('handleFileSelect - 事件来源:', e.isTrusted ? '用户操作' : '程序触发');
+        console.log('handleFileSelect - 文件数量:', e.target.files.length);
+        
         if (e.target.files.length > 0) {
-            this.handleFile(e.target.files[0]);
+            const file = e.target.files[0];
+            console.log('handleFileSelect - 选择文件:', file.name);
+            
+            // 确保状态管理器处于可上传状态
+            if (this.uploadStateManager.status === 'completed') {
+                console.log('handleFileSelect - 重置已完成的状态');
+                this.uploadStateManager.reset();
+            }
+            
+            this.handleFile(file);
         }
     }
     
@@ -164,17 +212,31 @@ class DataVisualizationApp {
         const dt = e.dataTransfer;
         const file = dt.files[0];
         if (file) {
+            console.log('handleDrop - 拖拽文件:', file.name);
+            
+            // 确保状态管理器处于可上传状态
+            if (this.uploadStateManager.status === 'completed') {
+                console.log('handleDrop - 重置已完成的状态');
+                this.uploadStateManager.reset();
+            }
+            
             this.handleFile(file);
         }
     }
     
     // 处理文件上传
     async handleFile(file) {
+        console.log('handleFile - 开始处理文件:', file.name);
+        
+        // 设置文件处理状态
+        this.isProcessingFile = true;
+        
         // 检查是否可以开始上传
         if (!this.uploadStateManager.canStartUpload()) {
             const statusInfo = this.uploadStateManager.getStatusInfo();
             console.log('Upload blocked - current status:', statusInfo.status);
             NotificationSystem.show('警告', '文件上传正在进行中，请等待完成', 'warning');
+            this.isProcessingFile = false;
             return;
         }
 
@@ -198,6 +260,7 @@ class DataVisualizationApp {
                 const userMessage = UploadErrorHandler.createUserMessage(errorResult);
                 NotificationSystem.show('错误', userMessage, 'error');
                 this.uploadProgress.classList.add('hidden');
+                this.isProcessingFile = false;
                 return;
             }
             
@@ -218,6 +281,7 @@ class DataVisualizationApp {
                 const userMessage = UploadErrorHandler.createUserMessage(errorResult);
                 NotificationSystem.show('错误', userMessage, 'error');
                 this.uploadProgress.classList.add('hidden');
+                this.isProcessingFile = false;
                 return;
             }
             
@@ -233,6 +297,7 @@ class DataVisualizationApp {
                 const userMessage = UploadErrorHandler.createUserMessage(errorResult);
                 NotificationSystem.show('错误', userMessage, 'error');
                 this.uploadProgress.classList.add('hidden');
+                this.isProcessingFile = false;
                 return;
             }
             
@@ -251,6 +316,7 @@ class DataVisualizationApp {
                 const userMessage = UploadErrorHandler.createUserMessage(errorResult);
                 NotificationSystem.show('错误', userMessage, 'error');
                 this.uploadProgress.classList.add('hidden');
+                this.isProcessingFile = false;
                 return;
             }
             
@@ -261,6 +327,8 @@ class DataVisualizationApp {
             this.uploadProgress.classList.add('hidden');
             
             NotificationSystem.show('成功', '文件上传成功', 'success');
+            
+            console.log('handleFile - 文件处理完成');
         } catch (error) {
             // 处理未捕获的错误
             const errorResult = UploadErrorHandler.handleError(error, {
@@ -272,6 +340,12 @@ class DataVisualizationApp {
             const userMessage = UploadErrorHandler.createUserMessage(errorResult);
             NotificationSystem.show('错误', userMessage, 'error');
             this.uploadProgress.classList.add('hidden');
+            
+            console.log('handleFile - 文件处理出错');
+        } finally {
+            // 重置文件处理状态
+            this.isProcessingFile = false;
+            console.log('handleFile - 重置文件处理状态');
         }
     }
     
