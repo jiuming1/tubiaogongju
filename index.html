@@ -7,6 +7,7 @@
     <title>数据可视化工具</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <link href="css/help-system.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -24,6 +25,8 @@
     <script src="js/upload-error-handler.js"></script>
     <script src="js/chart-generator-fixed.js"></script>
     <script src="js/export-manager.js"></script>
+    <script src="js/export-event-manager.js"></script>
+    <script src="js/help-system.js"></script>
     <script src="js/app.js"></script>
 
     <!-- 配置Tailwind -->
@@ -118,7 +121,7 @@
                     </div>
                 </div>
                 <div class="flex items-center">
-                    <button class="hidden sm:block p-2 rounded-md text-gray-500 hover:text-primary focus:outline-none">
+                    <button id="help-btn" class="hidden sm:block p-2 rounded-md text-gray-500 hover:text-primary focus:outline-none transition-all duration-200 hover:scale-105" title="帮助 (F1)">
                         <i class="fa-solid fa-question-circle"></i>
                     </button>
                     <button
@@ -428,21 +431,74 @@
                                     class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200 mobile-friendly-input"
                                     value="data-visualization">
                             </div>
+                            <!-- 尺寸预设选择 -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">图片尺寸</label>
-                                <div class="grid grid-cols-2 gap-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">尺寸预设</label>
+                                <select id="size-preset" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200 mb-3">
+                                    <option value="custom">自定义尺寸</option>
+                                    <optgroup label="当前图表尺寸">
+                                        <option value="current-size" selected>当前图表尺寸 (匹配显示)</option>
+                                        <option value="current-2x">当前尺寸 2倍 (高清)</option>
+                                        <option value="current-3x">当前尺寸 3倍 (超高清)</option>
+                                    </optgroup>
+                                    <optgroup label="网页展示">
+                                        <option value="web-hd">高清网页 (1920×1080)</option>
+                                        <option value="web-standard">标准网页 (1280×720)</option>
+                                        <option value="web-mobile">移动网页 (800×600)</option>
+                                    </optgroup>
+                                    <optgroup label="打印输出">
+                                        <option value="print-a4">A4纸张 (2480×3508)</option>
+                                        <option value="print-letter">Letter (2550×3300)</option>
+                                        <option value="print-poster">海报 (3000×4000)</option>
+                                    </optgroup>
+                                    <optgroup label="演示文稿">
+                                        <option value="ppt-16-9">PPT 16:9 (1920×1080)</option>
+                                        <option value="ppt-4-3">PPT 4:3 (1024×768)</option>
+                                    </optgroup>
+                                    <optgroup label="社交媒体">
+                                        <option value="social-square">方形 (1080×1080)</option>
+                                        <option value="social-story">故事 (1080×1920)</option>
+                                        <option value="social-banner">横幅 (1200×630)</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            
+                            <!-- 自定义尺寸 -->
+                            <div id="custom-size-section">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">自定义尺寸</label>
+                                <div class="grid grid-cols-2 gap-2 mb-2">
                                     <div>
                                         <label class="text-xs text-gray-500">宽度 (px)</label>
                                         <input type="number" id="export-width"
                                             class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200 mobile-friendly-input"
-                                            value="800">
+                                            value="1920" min="100" max="8000">
                                     </div>
                                     <div>
                                         <label class="text-xs text-gray-500">高度 (px)</label>
                                         <input type="number" id="export-height"
                                             class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors duration-200 mobile-friendly-input"
-                                            value="600">
+                                            value="1080" min="100" max="8000">
                                     </div>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span>纵横比: <span id="aspect-ratio">16:9</span></span>
+                                    <span>预估大小: <span id="estimated-size">~2.5MB</span></span>
+                                </div>
+                            </div>
+                            
+                            <!-- 质量设置 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">导出质量</label>
+                                <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                                    <label class="flex items-center">
+                                        <input type="radio" name="quality" value="high" class="h-4 w-4 text-primary focus:ring-primary/50 border-gray-300" checked>
+                                        <span class="ml-2 text-sm text-gray-700">
+                                            <strong>高清晰度导出</strong> (2x) - 最佳质量
+                                        </span>
+                                    </label>
+                                    <p class="text-xs text-gray-500 mt-1 ml-6">
+                                        自动优化设置，确保导出图片清晰度最佳
+                                    </p>
                                 </div>
                             </div>
                             <div>
@@ -484,7 +540,7 @@
                 </div>
 
                 <div class="flex space-x-6">
-                    <a href="#" class="text-gray-500 hover:text-primary transition-colors duration-200">
+                    <a href="https://github.com/jiuming1/tubiaogongju" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-primary transition-colors duration-200" title="查看项目源码">
                         <i class="fa-brands fa-github text-xl"></i>
                     </a>
                     <a href="#" class="text-gray-500 hover:text-primary transition-colors duration-200">
@@ -592,6 +648,10 @@
         const exportFilename = document.getElementById('export-filename');
         const exportWidth = document.getElementById('export-width');
         const exportHeight = document.getElementById('export-height');
+        const sizePreset = document.getElementById('size-preset');
+        const customSizeSection = document.getElementById('custom-size-section');
+        const aspectRatio = document.getElementById('aspect-ratio');
+        const estimatedSize = document.getElementById('estimated-size');
         const bgTransparent = document.getElementById('bg-transparent');
         const bgWhite = document.getElementById('bg-white');
         const navbar = document.getElementById('navbar');
@@ -606,22 +666,22 @@
         // 全局应用实例
         let app = null;
 
-        // 初始化
+        // 初始化 - DataVisualizationApp的初始化已移至app.js中统一管理
         document.addEventListener('DOMContentLoaded', () => {
-            try {
-                // 初始化DataVisualizationApp（如果可用）
-                if (typeof DataVisualizationApp !== 'undefined') {
-                    app = new DataVisualizationApp();
-                    console.log('DataVisualizationApp 初始化成功');
+            console.log('HTML DOMContentLoaded - 跳过DataVisualizationApp初始化，由app.js处理');
+            
+            // 等待app.js中的初始化完成
+            setTimeout(() => {
+                if (window.app) {
+                    console.log('HTML DOMContentLoaded - 检测到window.app已初始化');
+                    app = window.app; // 引用app.js中创建的实例
                 } else {
-                    console.warn('DataVisualizationApp 不可用，使用回退方案');
+                    console.warn('HTML DOMContentLoaded - window.app未找到，使用回退方案');
                 }
-            } catch (error) {
-                console.error('DataVisualizationApp 初始化失败:', error);
-            }
-
-            initializeEventListeners();
-            initializeDefaults();
+                
+                initializeEventListeners();
+                initializeDefaults();
+            }, 100);
         });
 
         // 初始化事件监听器
@@ -651,9 +711,12 @@
             // 图表生成
             generateChart.addEventListener('click', handleChartGeneration);
 
-            // 图表导出
-            exportChart.addEventListener('click', handleChartExport);
-            navExportBtn.addEventListener('click', handleChartExport);
+            // 图表导出 - 已移至app.js中统一管理
+            // exportChart.addEventListener('click', handleChartExport);
+            // navExportBtn.addEventListener('click', handleChartExport);
+            
+            // 导出设置
+            setupExportSettings();
 
             // 通知关闭
             notificationClose.addEventListener('click', hideNotification);
@@ -810,7 +873,11 @@
                         try {
                             updateFileInfo(file);
                             populateTablePreview();
-                            populateColumnSelectors();
+                            
+                            // 延迟调用列选择器，确保app已初始化
+                            setTimeout(() => {
+                                populateColumnSelectors();
+                            }, 100);
 
                             // 隐藏进度条
                             stopProgress();
@@ -1022,10 +1089,11 @@
 
             try {
                 // 使用DataVisualizationApp的优化列选择器逻辑
-                if (typeof app !== 'undefined' && app.updateColumnSelectors) {
-                    app.data = data;
-                    app.updateColumnSelectors();
+                if (typeof window !== 'undefined' && window.app && typeof window.app.updateColumnSelectors === 'function') {
+                    window.app.data = data;
+                    window.app.updateColumnSelectors();
                 } else {
+                    console.warn('App not fully initialized, using fallback column selector implementation');
                     // 回退到基础实现
                     generateBasicColumnSelectors();
                 }
@@ -1245,9 +1313,9 @@
 
             try {
                 // 使用DataVisualizationApp的优化逻辑
-                if (typeof app !== 'undefined' && app.handleGenerateChart) {
-                    app.data = data;
-                    app.handleGenerateChart();
+                if (typeof window !== 'undefined' && window.app && typeof window.app.handleChartGeneration === 'function') {
+                    window.app.data = data;
+                    window.app.handleChartGeneration();
                     return;
                 }
 
@@ -1429,10 +1497,77 @@
             try {
                 chart = new Chart(chartCanvas, config);
                 console.log('图表创建成功');
+                
+                // 图表创建后设置白色背景，避免导出时出现黑色背景
+                // 使用多次尝试确保背景设置成功
+                function setChartBackground() {
+                    const canvasCtx = chartCanvas.getContext('2d');
+                    const imageData = canvasCtx.getImageData(0, 0, chartCanvas.width, chartCanvas.height);
+                    
+                    // 创建白色背景
+                    canvasCtx.save();
+                    canvasCtx.globalCompositeOperation = 'destination-over';
+                    canvasCtx.fillStyle = '#FFFFFF';
+                    canvasCtx.fillRect(0, 0, chartCanvas.width, chartCanvas.height);
+                    canvasCtx.restore();
+                    
+                    console.log('Chart.js背景已设置为白色');
+                }
+                
+                // 立即设置一次
+                setChartBackground();
+                
+                // 延迟再设置一次，确保生效
+                setTimeout(setChartBackground, 50);
+                setTimeout(setChartBackground, 200);
 
                 // 显示图表容器
                 chartContainer.classList.remove('hidden');
                 noChartMessage.classList.add('hidden');
+                
+                // 更新导出预设以匹配当前图表尺寸
+                // 使用多重检查确保图表完全渲染后再获取尺寸
+                function updateExportPresetsAfterChart() {
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    
+                    function checkAndUpdate() {
+                        attempts++;
+                        const containerSize = getChartContainerSize();
+                        
+                        // 检查是否获取到有效尺寸
+                        if (containerSize.width > 100 && containerSize.height > 100) {
+                            console.log('成功获取图表尺寸，更新导出预设:', containerSize);
+                            if (typeof updateSizePresetOptions === 'function') {
+                                updateSizePresetOptions();
+                                
+                                // 如果当前选择的是图表尺寸相关的预设，更新数值
+                                const currentValue = sizePreset.value;
+                                if (currentValue.startsWith('current-') || currentValue === 'current-size') {
+                                    exportWidth.value = containerSize.width;
+                                    exportHeight.value = containerSize.height;
+                                    updateExportInfo();
+                                }
+                            }
+                        } else if (attempts < maxAttempts) {
+                            console.log(`尺寸获取尝试 ${attempts}/${maxAttempts}, 当前尺寸:`, containerSize);
+                            // 继续尝试
+                            setTimeout(checkAndUpdate, 100);
+                        } else {
+                            console.warn('达到最大尝试次数，使用当前尺寸');
+                            if (typeof updateSizePresetOptions === 'function') {
+                                updateSizePresetOptions();
+                            }
+                        }
+                    }
+                    
+                    // 使用requestAnimationFrame确保DOM渲染完成
+                    requestAnimationFrame(() => {
+                        setTimeout(checkAndUpdate, 50);
+                    });
+                }
+                
+                updateExportPresetsAfterChart();
             } catch (error) {
                 console.error('图表创建失败:', error);
                 throw error;
@@ -1452,58 +1587,520 @@
             return themes[theme] || themes.blue;
         }
 
-        // 处理图表导出
-        function handleChartExport() {
-            if (!chart) {
-                showNotification('错误', '请先生成图表', 'error');
-                return;
+        // 获取图表容器的实际尺寸
+        function getChartContainerSize() {
+            const container = chartContainer;
+            if (!container) {
+                console.warn('图表容器未找到，使用默认尺寸');
+                return { width: 800, height: 384 };
             }
+            
+            // 检查容器是否可见
+            if (container.classList.contains('hidden') || container.offsetWidth === 0) {
+                console.warn('图表容器不可见，使用默认尺寸');
+                return { width: 800, height: 384 };
+            }
+            
+            // 优先使用图表canvas的尺寸（如果存在）
+            const chartCanvas = document.getElementById('chart-canvas');
+            if (chartCanvas && chartCanvas.offsetWidth > 0) {
+                console.log('使用图表canvas尺寸');
+                return {
+                    width: Math.round(chartCanvas.offsetWidth),
+                    height: Math.round(chartCanvas.offsetHeight)
+                };
+            }
+            
+            // 获取容器的实际渲染尺寸
+            const rect = container.getBoundingClientRect();
+            const computedStyle = window.getComputedStyle(container);
+            
+            // 减去padding和border
+            const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+            const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
+            const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+            const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+            
+            const borderLeft = parseFloat(computedStyle.borderLeftWidth) || 0;
+            const borderRight = parseFloat(computedStyle.borderRightWidth) || 0;
+            const borderTop = parseFloat(computedStyle.borderTopWidth) || 0;
+            const borderBottom = parseFloat(computedStyle.borderBottomWidth) || 0;
+            
+            const actualWidth = rect.width - paddingLeft - paddingRight - borderLeft - borderRight;
+            const actualHeight = rect.height - paddingTop - paddingBottom - borderTop - borderBottom;
+            
+            console.log('容器尺寸计算结果:', {
+                rectWidth: rect.width,
+                rectHeight: rect.height,
+                actualWidth: Math.round(actualWidth),
+                actualHeight: Math.round(actualHeight)
+            });
+            
+            return {
+                width: Math.round(actualWidth),
+                height: Math.round(actualHeight)
+            };
+        }
 
-            const filename = exportFilename.value || 'chart';
-            const width = parseInt(exportWidth.value) || 800;
-            const height = parseInt(exportHeight.value) || 600;
-            const background = bgWhite.checked ? '#FFFFFF' : 'transparent';
+        // 动态生成导出尺寸预设
+        function generateSizePresets() {
+            const containerSize = getChartContainerSize();
+            
+            return {
+                'current-size': { 
+                    width: containerSize.width, 
+                    height: containerSize.height, 
+                    name: `当前图表尺寸 (${containerSize.width}×${containerSize.height})` 
+                },
+                'current-2x': { 
+                    width: containerSize.width * 2, 
+                    height: containerSize.height * 2, 
+                    name: `当前尺寸 2倍 (${containerSize.width * 2}×${containerSize.height * 2})` 
+                },
+                'current-3x': { 
+                    width: containerSize.width * 3, 
+                    height: containerSize.height * 3, 
+                    name: `当前尺寸 3倍 (${containerSize.width * 3}×${containerSize.height * 3})` 
+                },
+                'web-hd': { width: 1920, height: 1080, name: '高清网页 (1920×1080)' },
+                'web-standard': { width: 1280, height: 720, name: '标准网页 (1280×720)' },
+                'web-mobile': { width: 800, height: 600, name: '移动网页 (800×600)' },
+                'print-a4': { width: 2480, height: 3508, name: 'A4纸张 (2480×3508)' },
+                'print-letter': { width: 2550, height: 3300, name: 'Letter (2550×3300)' },
+                'print-poster': { width: 3000, height: 4000, name: '海报 (3000×4000)' },
+                'ppt-16-9': { width: 1920, height: 1080, name: 'PPT 16:9 (1920×1080)' },
+                'ppt-4-3': { width: 1024, height: 768, name: 'PPT 4:3 (1024×768)' },
+                'social-square': { width: 1080, height: 1080, name: '方形 (1080×1080)' },
+                'social-story': { width: 1080, height: 1920, name: '故事 (1080×1920)' },
+                'social-banner': { width: 1200, height: 630, name: '横幅 (1200×630)' }
+            };
+        }
 
-            try {
-                exportChartAsImage(selectedExportFormat, filename, width, height, background);
-                showNotification('成功', '图表导出成功', 'success');
-            } catch (error) {
-                console.error('Export error:', error);
-                showNotification('错误', '导出图表时出错: ' + error.message, 'error');
+        // 更新尺寸预设选择器
+        function updateSizePresetOptions() {
+            const sizePresets = generateSizePresets();
+            const sizePresetSelect = sizePreset;
+            
+            // 保存当前选择
+            const currentValue = sizePresetSelect.value;
+            
+            // 清空现有选项
+            sizePresetSelect.innerHTML = '';
+            
+            // 添加自定义选项
+            const customOption = document.createElement('option');
+            customOption.value = 'custom';
+            customOption.textContent = '自定义尺寸';
+            sizePresetSelect.appendChild(customOption);
+            
+            // 添加当前图表尺寸组
+            const currentGroup = document.createElement('optgroup');
+            currentGroup.label = '当前图表尺寸';
+            ['current-size', 'current-2x', 'current-3x'].forEach(key => {
+                const preset = sizePresets[key];
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = preset.name;
+                currentGroup.appendChild(option);
+            });
+            sizePresetSelect.appendChild(currentGroup);
+            
+            // 添加其他预设组
+            const groups = {
+                '网页展示': ['web-hd', 'web-standard', 'web-mobile'],
+                '打印输出': ['print-a4', 'print-letter', 'print-poster'],
+                '演示文稿': ['ppt-16-9', 'ppt-4-3'],
+                '社交媒体': ['social-square', 'social-story', 'social-banner']
+            };
+            
+            Object.entries(groups).forEach(([groupName, presetKeys]) => {
+                const group = document.createElement('optgroup');
+                group.label = groupName;
+                presetKeys.forEach(key => {
+                    const preset = sizePresets[key];
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = preset.name;
+                    group.appendChild(option);
+                });
+                sizePresetSelect.appendChild(group);
+            });
+            
+            // 恢复选择或默认选择当前尺寸
+            if (currentValue && sizePresets[currentValue]) {
+                sizePresetSelect.value = currentValue;
+            } else {
+                sizePresetSelect.value = 'current-size';
+            }
+            
+            return sizePresets;
+        }
+
+        // 设置导出设置事件监听
+        function setupExportSettings() {
+            // 初始化预设选项
+            let sizePresets = updateSizePresetOptions();
+            
+            // 设置ResizeObserver来监听图表容器尺寸变化
+            if (window.ResizeObserver) {
+                const resizeObserver = new ResizeObserver(entries => {
+                    for (let entry of entries) {
+                        if (entry.target === chartContainer) {
+                            console.log('检测到图表容器尺寸变化');
+                            // 延迟更新以避免频繁触发
+                            clearTimeout(window.chartResizeTimeout);
+                            window.chartResizeTimeout = setTimeout(() => {
+                                sizePresets = updateSizePresetOptions();
+                                const currentValue = sizePreset.value;
+                                if (currentValue.startsWith('current-')) {
+                                    const containerSize = getChartContainerSize();
+                                    exportWidth.value = containerSize.width;
+                                    exportHeight.value = containerSize.height;
+                                    updateExportInfo();
+                                }
+                            }, 100);
+                        }
+                    }
+                });
+                
+                resizeObserver.observe(chartContainer);
+            }
+            
+            // 尺寸预设变化
+            sizePreset.addEventListener('change', function() {
+                const preset = sizePresets[this.value];
+                if (preset) {
+                    exportWidth.value = preset.width;
+                    exportHeight.value = preset.height;
+                    customSizeSection.style.display = 'none';
+                } else {
+                    customSizeSection.style.display = 'block';
+                }
+                updateExportInfo();
+            });
+
+            // 自定义尺寸变化
+            exportWidth.addEventListener('input', updateExportInfo);
+            exportHeight.addEventListener('input', updateExportInfo);
+
+            // 质量设置变化
+            document.querySelectorAll('input[name="quality"]').forEach(radio => {
+                radio.addEventListener('change', updateExportInfo);
+            });
+
+            // 窗口大小变化时更新预设
+            let resizeTimeout;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    sizePresets = updateSizePresetOptions();
+                    // 如果当前选择的是图表尺寸相关的预设，更新数值
+                    const currentValue = sizePreset.value;
+                    if (currentValue.startsWith('current-')) {
+                        const preset = sizePresets[currentValue];
+                        if (preset) {
+                            exportWidth.value = preset.width;
+                            exportHeight.value = preset.height;
+                            updateExportInfo();
+                        }
+                    }
+                }, 300);
+            });
+
+            // 初始化显示
+            const containerSize = getChartContainerSize();
+            exportWidth.value = containerSize.width;
+            exportHeight.value = containerSize.height;
+            updateExportInfo();
+        }
+
+        // 更新导出信息显示
+        function updateExportInfo() {
+            const width = parseInt(exportWidth.value) || 1920;
+            const height = parseInt(exportHeight.value) || 1080;
+            
+            // 计算纵横比
+            const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+            const divisor = gcd(width, height);
+            const ratioW = width / divisor;
+            const ratioH = height / divisor;
+            aspectRatio.textContent = `${ratioW}:${ratioH}`;
+            
+            // 估算文件大小
+            // 统一使用高质量设置 (2x)
+            const multiplier = 2; // 固定使用2倍高质量
+            const baseSize = (width * height * multiplier) / 1000000; // 转换为MB
+            
+            let estimatedMB;
+            const format = selectedExportFormat;
+            switch (format) {
+                case 'png':
+                    estimatedMB = baseSize * 0.5;
+                    break;
+                case 'jpg':
+                case 'jpeg':
+                    estimatedMB = baseSize * 0.1;
+                    break;
+                case 'svg':
+                    estimatedMB = Math.min(baseSize * 0.01, 1);
+                    break;
+                case 'pdf':
+                    estimatedMB = baseSize * 0.3;
+                    break;
+                default:
+                    estimatedMB = baseSize * 0.3;
+            }
+            
+            if (estimatedMB < 1) {
+                estimatedSize.textContent = `~${Math.round(estimatedMB * 1000)}KB`;
+            } else {
+                estimatedSize.textContent = `~${estimatedMB.toFixed(1)}MB`;
+            }
+            
+            // 显示警告
+            if (estimatedMB > 10) {
+                estimatedSize.style.color = '#dc2626';
+                estimatedSize.title = '文件较大，导出可能需要较长时间';
+            } else if (estimatedMB > 5) {
+                estimatedSize.style.color = '#d97706';
+                estimatedSize.title = '文件偏大，建议降低质量或尺寸';
+            } else {
+                estimatedSize.style.color = '#059669';
+                estimatedSize.title = '文件大小适中';
             }
         }
 
+        // 导出相关函数已移至app.js和ExportEventManager中统一管理
+        // 移除重复的handleChartExport和setExportButtonLoading函数定义
+
         // 导出图表为图片
-        function exportChartAsImage(format, filename, width, height, background) {
-            if (format === 'pdf') {
-                // 使用jsPDF导出PDF
-                html2canvas(chartContainer, {
-                    width: width,
-                    height: height,
-                    backgroundColor: background
-                }).then(canvas => {
-                    const imgData = canvas.toDataURL('image/png');
-                    const pdf = new jspdf.jsPDF({
-                        orientation: width > height ? 'landscape' : 'portrait',
-                        unit: 'px',
-                        format: [width, height]
-                    });
-                    pdf.addImage(imgData, 'PNG', 0, 0, width, height);
-                    pdf.save(`${filename}.pdf`);
-                });
-            } else {
-                // 导出为图片格式
-                html2canvas(chartContainer, {
-                    width: width,
-                    height: height,
-                    backgroundColor: background
-                }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = `${filename}.${format}`;
-                    link.href = canvas.toDataURL(`image/${format}`);
-                    link.click();
-                });
+        function exportChartAsImage(format, filename, width, height, background, quality = 'high') {
+            // 质量设置
+            const qualitySettings = {
+                standard: { scale: 1, compression: 0.8 },
+                high: { scale: 2, compression: 0.9 },
+                ultra: { scale: 3, compression: 0.95 }
+            };
+            
+            const settings = qualitySettings[quality] || qualitySettings.high;
+            
+            // 确定最终的导出尺寸
+            let finalWidth = width;
+            let finalHeight = height;
+            
+            // 如果选择的是当前图表尺寸，需要精确匹配
+            if (sizePreset.value.startsWith('current-')) {
+                const containerSize = getChartContainerSize();
+                const multiplier = sizePreset.value === 'current-2x' ? 2 : 
+                                 sizePreset.value === 'current-3x' ? 3 : 1;
+                finalWidth = containerSize.width * multiplier;
+                finalHeight = containerSize.height * multiplier;
             }
+            
+            console.log('Export dimensions:', { finalWidth, finalHeight, quality, scale: settings.scale });
+            // 如果选择的是当前图表尺寸，使用精确捕获方法
+            if (sizePreset.value.startsWith('current-')) {
+                const multiplier = sizePreset.value === 'current-2x' ? 2 : 
+                                 sizePreset.value === 'current-3x' ? 3 : 1;
+                
+                captureChartPrecisely(finalWidth / multiplier, finalHeight / multiplier, multiplier, background)
+                    .then(canvas => {
+                        if (format === 'pdf') {
+                            const imgData = canvas.toDataURL('image/png');
+                            const pdf = new jspdf.jsPDF({
+                                orientation: finalWidth > finalHeight ? 'landscape' : 'portrait',
+                                unit: 'px',
+                                format: [finalWidth, finalHeight]
+                            });
+                            pdf.addImage(imgData, 'PNG', 0, 0, finalWidth, finalHeight);
+                            pdf.save(`${filename}.pdf`);
+                        } else {
+                            // 最终处理：如果用户选择透明背景，需要特殊处理
+                            let finalCanvas = canvas;
+                            if (background === 'transparent') {
+                                finalCanvas = makeBackgroundTransparent(canvas);
+                            }
+                            
+                            const link = document.createElement('a');
+                            link.download = `${filename}.${format}`;
+                            link.href = finalCanvas.toDataURL(`image/${format}`, settings.compression);
+                            link.click();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Precise capture failed, falling back to html2canvas:', error);
+                        // 回退到html2canvas方法
+                        fallbackToHtml2Canvas();
+                    });
+                return;
+            }
+
+            // 对于非当前尺寸的预设，使用html2canvas
+            function fallbackToHtml2Canvas() {
+                // 强制使用白色背景，避免黑色背景问题
+                let htmlCanvasBg = background;
+                if (background === 'transparent' || !background) {
+                    htmlCanvasBg = '#FFFFFF';
+                }
+                
+                const canvasOptions = {
+                    backgroundColor: htmlCanvasBg,
+                    scale: settings.scale,
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    removeContainer: false,
+                    imageTimeout: 15000,
+                    width: finalWidth,
+                    height: finalHeight
+                };
+                
+                console.log('html2canvas背景设置:', htmlCanvasBg);
+
+                if (format === 'pdf') {
+                    // 使用jsPDF导出PDF
+                    html2canvas(chartContainer, canvasOptions).then(canvas => {
+                        const finalCanvas = resizeCanvas(canvas, finalWidth, finalHeight);
+                        const imgData = finalCanvas.toDataURL('image/png');
+                        const pdf = new jspdf.jsPDF({
+                            orientation: finalWidth > finalHeight ? 'landscape' : 'portrait',
+                            unit: 'px',
+                            format: [finalWidth, finalHeight]
+                        });
+                        pdf.addImage(imgData, 'PNG', 0, 0, finalWidth, finalHeight);
+                        pdf.save(`${filename}.pdf`);
+                    });
+                } else {
+                    // 导出为图片格式
+                    html2canvas(chartContainer, canvasOptions).then(canvas => {
+                        let finalCanvas = resizeCanvas(canvas, finalWidth, finalHeight);
+                        
+                        // 如果用户选择透明背景，处理透明度
+                        if (background === 'transparent') {
+                            finalCanvas = makeBackgroundTransparent(finalCanvas);
+                        }
+                        
+                        const link = document.createElement('a');
+                        link.download = `${filename}.${format}`;
+                        link.href = finalCanvas.toDataURL(`image/${format}`, settings.compression);
+                        link.click();
+                    }).catch(error => {
+                        console.error('Export failed:', error);
+                        throw error;
+                    });
+                }
+            }
+            
+            // 执行回退方法
+            fallbackToHtml2Canvas();
+        }
+
+        // 调整canvas尺寸的辅助函数
+        function resizeCanvas(sourceCanvas, targetWidth, targetHeight) {
+            const targetCanvas = document.createElement('canvas');
+            // 添加willReadFrequently属性以优化性能
+            const targetCtx = targetCanvas.getContext('2d', { willReadFrequently: true });
+            
+            targetCanvas.width = targetWidth;
+            targetCanvas.height = targetHeight;
+            
+            // 使用高质量的图像缩放
+            targetCtx.imageSmoothingEnabled = true;
+            targetCtx.imageSmoothingQuality = 'high';
+            
+            // 绘制缩放后的图像
+            targetCtx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
+            
+            return targetCanvas;
+        }
+
+        // 将白色背景转换为透明背景的函数
+        function makeBackgroundTransparent(sourceCanvas) {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+            
+            tempCanvas.width = sourceCanvas.width;
+            tempCanvas.height = sourceCanvas.height;
+            
+            // 复制原始图像
+            tempCtx.drawImage(sourceCanvas, 0, 0);
+            
+            // 获取图像数据
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = imageData.data;
+            
+            // 将白色像素转换为透明
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // 如果是白色或接近白色的像素，设置为透明
+                if (r > 240 && g > 240 && b > 240) {
+                    data[i + 3] = 0; // 设置alpha为0（透明）
+                }
+            }
+            
+            // 将修改后的数据放回canvas
+            tempCtx.putImageData(imageData, 0, 0);
+            
+            return tempCanvas;
+        }
+
+        // 精确捕获图表内容的函数
+        function captureChartPrecisely(targetWidth, targetHeight, scale, background) {
+            return new Promise((resolve, reject) => {
+                // 获取图表canvas元素
+                const chartCanvas = document.getElementById('chart-canvas');
+                if (!chartCanvas) {
+                    reject(new Error('图表canvas未找到'));
+                    return;
+                }
+
+                // 创建新的canvas来绘制最终结果
+                const outputCanvas = document.createElement('canvas');
+                // 添加willReadFrequently属性以优化性能
+                const outputCtx = outputCanvas.getContext('2d', { willReadFrequently: true });
+                
+                outputCanvas.width = targetWidth * scale;
+                outputCanvas.height = targetHeight * scale;
+                
+                // 设置背景 - 强制设置白色背景避免黑色背景问题
+                let bgColor = '#FFFFFF'; // 默认白色背景
+                
+                if (background === 'transparent') {
+                    // 即使用户选择透明，也先设置白色背景，然后在最后处理透明度
+                    bgColor = '#FFFFFF';
+                } else if (background && background !== 'transparent') {
+                    bgColor = background;
+                }
+                
+                // 强制填充背景色
+                outputCtx.fillStyle = bgColor;
+                outputCtx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+                
+                console.log('设置导出背景色:', bgColor);
+                
+                // 获取图表canvas的实际尺寸
+                const chartRect = chartCanvas.getBoundingClientRect();
+                const containerRect = chartContainer.getBoundingClientRect();
+                
+                // 计算图表在容器中的位置
+                const offsetX = chartRect.left - containerRect.left;
+                const offsetY = chartRect.top - containerRect.top;
+                
+                // 计算缩放比例
+                const scaleX = (targetWidth * scale) / chartRect.width;
+                const scaleY = (targetHeight * scale) / chartRect.height;
+                
+                // 绘制图表内容
+                outputCtx.save();
+                outputCtx.scale(scaleX, scaleY);
+                outputCtx.drawImage(chartCanvas, -offsetX, -offsetY);
+                outputCtx.restore();
+                
+                resolve(outputCanvas);
+            });
         }
 
         // 显示通知
@@ -1570,8 +2167,8 @@
                 }
             });
 
-            // 移动端导出按钮
-            mobileExportBtn.addEventListener('click', handleChartExport);
+            // 移动端导出按钮 - 已移至app.js中统一管理
+            // mobileExportBtn.addEventListener('click', handleChartExport);
 
             // 点击菜单项后关闭菜单
             mobileMenu.querySelectorAll('a').forEach(link => {

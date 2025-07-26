@@ -1,0 +1,236 @@
+/* 帮助系统样式 */
+
+/* 帮助按钮样式 */
+#help-btn {
+    position: relative;
+}
+
+#help-btn:hover {
+    transform: scale(1.05);
+}
+
+#help-btn:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* 帮助模态框样式 */
+#help-modal {
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.3s ease-out;
+}
+
+#help-modal .bg-white {
+    animation: slideUp 0.3s ease-out;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* 标签页样式 */
+.help-tab-btn {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.help-tab-btn:hover {
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+.help-tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+/* 内容区域样式 */
+.help-tab-content {
+    animation: fadeInContent 0.3s ease-in-out;
+}
+
+.help-tab-content.hidden {
+    display: none;
+}
+
+/* FAQ样式 */
+.faq-toggle {
+    transition: all 0.2s ease;
+}
+
+.faq-toggle:hover {
+    background-color: #f9fafb;
+}
+
+.faq-content {
+    transition: all 0.3s ease;
+    line-height: 1.6;
+}
+
+.faq-chevron {
+    transition: transform 0.2s ease;
+}
+
+/* 键盘快捷键样式 */
+kbd {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #374151;
+    background-color: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    padding: 0.25rem 0.5rem;
+    display: inline-block;
+    min-width: 1.5rem;
+    text-align: center;
+}
+
+/* 步骤编号样式 */
+.step-number {
+    background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* 提示框样式 */
+.help-tip {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-left: 4px solid #f59e0b;
+}
+
+.help-info {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    border-left: 4px solid #3b82f6;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    #help-modal .bg-white {
+        margin: 1rem;
+        max-height: calc(100vh - 2rem);
+    }
+    
+    .help-tab-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    .help-tab-content {
+        padding: 1rem;
+    }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes fadeInContent {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 无障碍支持 */
+.help-tab-btn:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+
+.faq-toggle:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+
+/* 打印样式 */
+@media print {
+    #help-modal {
+        position: static !important;
+        background: white !important;
+    }
+    
+    .help-tab-btn {
+        display: none;
+    }
+    
+    .help-tab-content {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+    #help-modal {
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+    
+    #help-modal .bg-white {
+        background-color: #1f2937;
+        color: #f9fafb;
+    }
+    
+    .help-tab-btn {
+        color: #d1d5db;
+    }
+    
+    .help-tab-btn:hover {
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+    
+    kbd {
+        background-color: #374151;
+        color: #f9fafb;
+        border-color: #4b5563;
+    }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+    .help-tab-btn {
+        border: 2px solid transparent;
+    }
+    
+    .help-tab-btn.active {
+        border-bottom-color: var(--primary-color);
+        border-bottom-width: 3px;
+    }
+    
+    kbd {
+        border-width: 2px;
+        font-weight: 700;
+    }
+}
+
+/* 减少动画模式支持 */
+@media (prefers-reduced-motion: reduce) {
+    #help-modal,
+    #help-modal .bg-white,
+    .help-tab-content,
+    .help-tab-btn,
+    .faq-toggle,
+    .faq-content,
+    .faq-chevron {
+        animation: none;
+        transition: none;
+    }
+}
